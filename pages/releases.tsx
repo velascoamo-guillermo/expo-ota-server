@@ -32,6 +32,7 @@ import { showToast } from '../components/toast';
 interface Release {
   path: string;
   runtimeVersion: string;
+  channel: string;
   timestamp: string;
   size: number;
   commitHash: string | null;
@@ -90,6 +91,7 @@ export default function ReleasesPage() {
                 <Thead>
                   <Tr>
                     <Th>Name</Th>
+                    <Th>Channel</Th>
                     <Th>Runtime Version</Th>
                     <Th>Commit Hash</Th>
                     <Th>Commit Message</Th>
@@ -106,6 +108,18 @@ export default function ReleasesPage() {
                     .map((release, index) => (
                       <Tr key={index}>
                         <Td>{release.path}</Td>
+                        <Td>
+                          <Tag
+                            colorScheme={
+                              release.channel === 'production'
+                                ? 'blue'
+                                : release.channel === 'staging'
+                                  ? 'purple'
+                                  : 'gray'
+                            }>
+                            {release.channel ?? 'production'}
+                          </Tag>
+                        </Td>
                         <Td>{release.runtimeVersion}</Td>
                         <Td>
                           <Tooltip label={release.commitHash}>
@@ -185,6 +199,7 @@ export default function ReleasesPage() {
                                             body: JSON.stringify({
                                               path: selectedRelease?.path,
                                               runtimeVersion: selectedRelease?.runtimeVersion,
+                                              channel: selectedRelease?.channel ?? 'production',
                                               commitHash: selectedRelease?.commitHash,
                                               commitMessage: selectedRelease?.commitMessage,
                                             }),

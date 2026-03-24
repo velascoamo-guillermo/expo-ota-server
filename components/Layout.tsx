@@ -1,14 +1,13 @@
 import { Box, Flex, VStack, Button, FlexProps } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
-import { FaSignOutAlt, FaTachometerAlt, FaTags } from 'react-icons/fa';
+import { FaSignOutAlt, FaLayerGroup } from 'react-icons/fa';
 import Image from 'next/image';
 
 export default function Layout({ children, ...props }: { children: React.ReactNode } & FlexProps) {
   const router = useRouter();
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: <FaTachometerAlt fontSize="1.25rem" /> },
-    { name: 'Releases', path: '/releases', icon: <FaTags fontSize="1.25rem" /> },
+    { name: 'Channels', path: '/dashboard', icon: <FaLayerGroup fontSize="1.25rem" /> },
   ];
 
   const handleLogout = () => {
@@ -48,8 +47,8 @@ export default function Layout({ children, ...props }: { children: React.ReactNo
             {navItems.map((item) => (
               <Button
                 key={item.path}
-                variant={router.pathname === item.path ? 'solid' : 'ghost'}
-                colorScheme={router.pathname === item.path ? 'primary' : 'gray'}
+                variant={router.pathname.startsWith(item.path) ? 'solid' : 'ghost'}
+                colorScheme={router.pathname.startsWith(item.path) ? 'primary' : 'gray'}
                 rightIcon={item.icon}
                 onClick={() => router.push(item.path)}
                 justifyContent="space-between">
