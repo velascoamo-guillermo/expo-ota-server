@@ -13,6 +13,7 @@ export type GetAssetMetadataArg =
       isLaunchAsset: true;
       runtimeVersion: string;
       platform: string;
+      channel: string;
     }
   | {
       updateBundlePath: string;
@@ -21,14 +22,16 @@ export type GetAssetMetadataArg =
       isLaunchAsset: false;
       runtimeVersion: string;
       platform: string;
+      channel: string;
     };
 
 export class UpdateHelper {
   static async getLatestUpdateBundlePathForRuntimeVersionAsync(
-    runtimeVersion: string
+    runtimeVersion: string,
+    channel: string = 'production'
   ): Promise<string> {
     const storage = StorageFactory.getStorage();
-    const updatesDirectoryForRuntimeVersion = `updates/${runtimeVersion}`;
+    const updatesDirectoryForRuntimeVersion = `updates/${channel}/${runtimeVersion}`;
 
     if (!(await storage.fileExists(updatesDirectoryForRuntimeVersion))) {
       throw new NoUpdateAvailableError();
@@ -61,7 +64,7 @@ export class UpdateHelper {
       key,
       fileExtension: `.${keyExtensionSuffix}`,
       contentType,
-      url: `${process.env.HOST}/api/assets?asset=${arg.filePath}&runtimeVersion=${arg.runtimeVersion}&platform=${arg.platform}`,
+      url: `${process.env.HOST}/api/assets?asset=${arg.filePath}&runtimeVersion=${arg.runtimeVersion}&platform=${arg.platform}&channel=${arg.channel}`,
     };
   }
 
