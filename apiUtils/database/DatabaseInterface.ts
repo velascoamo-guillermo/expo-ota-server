@@ -1,6 +1,7 @@
 export interface Release {
   id: string;
   runtimeVersion: string;
+  channel: string;
   path: string;
   timestamp: string;
   commitHash: string;
@@ -28,5 +29,7 @@ export interface DatabaseInterface {
   createTracking(tracking: Omit<Tracking, 'id'>): Promise<Tracking>;
   getReleaseTrackingMetrics(releaseId: string): Promise<TrackingMetrics[]>;
   getReleaseTrackingMetricsForAllReleases(): Promise<TrackingMetrics[]>;
-  getLatestReleaseRecordForRuntimeVersion(runtimeVersion: string): Promise<Release | null>;
+  getReleaseTrackingMetricsByChannel(channel: string): Promise<TrackingMetrics[]>;
+  listChannels(): Promise<string[]>;
+  getLatestReleaseRecordForRuntimeVersionAndChannel(runtimeVersion: string, channel: string): Promise<Release | null>;
 }

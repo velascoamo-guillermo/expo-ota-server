@@ -17,11 +17,54 @@ export class SupabaseDatabase implements DatabaseInterface {
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
-  async getLatestReleaseRecordForRuntimeVersion(runtimeVersion: string): Promise<Release | null> {
+  async listChannels(): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from(Tables.RELEASES)
+      .select('channel')
+      .order('channel', { ascending: true });
+
+    if (error) throw new Error(error.message);
+    const unique = data.map((r) => r.channel as string).filter((v, i, a) => a.indexOf(v) === i);
+    return unique;
+  }
+
+  async getReleaseTrackingMetricsByChannel(channel: string): Promise<TrackingMetrics[]> {
+    const { data: releases, error: releasesError } = await this.supabase
+      .from(Tables.RELEASES)
+      .select('id')
+      .eq('channel', channel);
+
+    if (releasesError) throw new Error(releasesError.message);
+    if (!releases.length) return [];
+
+    const releaseIds = releases.map((r) => r.id);
+
+    const { count: iosCount, error: iosError } = await this.supabase
+      .from(Tables.RELEASES_TRACKING)
+      .select('platform', { count: 'estimated', head: true })
+      .in('release_id', releaseIds)
+      .eq('platform', 'ios');
+
+    const { count: androidCount, error: androidError } = await this.supabase
+      .from(Tables.RELEASES_TRACKING)
+      .select('platform', { count: 'estimated', head: true })
+      .in('release_id', releaseIds)
+      .eq('platform', 'android');
+
+    if (iosError || androidError) throw new Error(iosError?.message || androidError?.message);
+
+    return [
+      { platform: 'ios', count: Number(iosCount) },
+      { platform: 'android', count: Number(androidCount) },
+    ];
+  }
+
+  async getLatestReleaseRecordForRuntimeVersionAndChannel(runtimeVersion: string, channel: string): Promise<Release | null> {
     const { data, error } = await this.supabase
       .from(Tables.RELEASES)
       .select()
       .eq('runtime_version', runtimeVersion)
+      .eq('channel', channel)
       .order('timestamp', { ascending: false })
       .limit(1)
       .single();
@@ -32,6 +75,7 @@ export class SupabaseDatabase implements DatabaseInterface {
       return {
         id: data.id,
         runtimeVersion: data.runtime_version,
+        channel: data.channel,
         path: data.path,
         timestamp: data.timestamp,
         commitHash: data.commit_hash,
@@ -125,6 +169,7 @@ export class SupabaseDatabase implements DatabaseInterface {
       .insert({
         path: release.path,
         runtime_version: release.runtimeVersion,
+        channel: release.channel,
         timestamp: release.timestamp,
         commit_hash: release.commitHash,
         commit_message: release.commitMessage,
@@ -150,6 +195,7 @@ export class SupabaseDatabase implements DatabaseInterface {
       id: data.id,
       path: data.path,
       runtimeVersion: data.runtime_version,
+      channel: data.channel ?? 'production',
       timestamp: data.timestamp,
       commitHash: data.commit_hash,
       commitMessage: data.commit_message,
@@ -167,6 +213,7 @@ export class SupabaseDatabase implements DatabaseInterface {
       id: release.id,
       path: release.path,
       runtimeVersion: release.runtime_version,
+      channel: release.channel ?? 'production',
       timestamp: release.timestamp,
       size: release.size,
       commitHash: release.commit_hash,
