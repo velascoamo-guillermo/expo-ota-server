@@ -59,6 +59,7 @@ describe('Manifest API', () => {
     const mockRelease: Release = {
       id: 'release-id',
       runtimeVersion: '1.0.0',
+      channel: 'production',
       path: 'path/to/update.zip',
       timestamp: '2024-03-20T00:00:00Z',
       commitHash: 'abc123',
@@ -67,7 +68,7 @@ describe('Manifest API', () => {
     };
 
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersion: jest.fn().mockResolvedValue(mockRelease),
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(mockRelease),
     } as unknown as DatabaseInterface;
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
@@ -116,11 +117,12 @@ describe('Manifest API', () => {
       timestamp: '2024-03-20T00:00:00Z',
       commitHash: 'abc123',
       commitMessage: 'Test commit',
+      channel: 'production',
       updateId: 'different-update-id',
     };
 
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersion: jest.fn().mockResolvedValue(mockRelease),
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(mockRelease),
       getReleaseByPath: jest.fn().mockResolvedValue(mockRelease),
       createTracking: jest.fn().mockResolvedValue(undefined),
     } as unknown as DatabaseInterface;
@@ -198,7 +200,7 @@ describe('Manifest API', () => {
   it('should handle rollback update successfully', async () => {
     // Mock database
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersion: jest.fn().mockResolvedValue(null),
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
     } as unknown as DatabaseInterface;
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
@@ -253,7 +255,7 @@ describe('Manifest API', () => {
   it('should return NoUpdateAvailable when current update matches latest', async () => {
     // Mock database
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersion: jest.fn().mockResolvedValue(null),
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
     } as unknown as DatabaseInterface;
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
@@ -312,7 +314,7 @@ describe('Manifest API', () => {
   it('should handle NoUpdateAvailable error from UpdateHelper', async () => {
     // Mock database
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersion: jest.fn().mockResolvedValue(null),
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
     } as unknown as DatabaseInterface;
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);

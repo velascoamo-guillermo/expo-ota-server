@@ -6,7 +6,7 @@ import { UpdateHelper } from '../../apiUtils/helpers/UpdateHelper';
 import { ZipHelper } from '../../apiUtils/helpers/ZipHelper';
 
 export default async function assetsEndpoint(req: NextApiRequest, res: NextApiResponse) {
-  const { asset: assetPath, runtimeVersion, platform } = req.query;
+  const { asset: assetPath, runtimeVersion, platform, channel = 'production' } = req.query;
 
   if (!assetPath || typeof assetPath !== 'string') {
     res.statusCode = 400;
@@ -28,7 +28,8 @@ export default async function assetsEndpoint(req: NextApiRequest, res: NextApiRe
 
   try {
     const updateBundlePath = await UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync(
-      runtimeVersion as string
+      runtimeVersion as string,
+      channel as string
     );
     const zip = await ZipHelper.getZipFromStorage(updateBundlePath);
 

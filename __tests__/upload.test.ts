@@ -86,6 +86,7 @@ describe('Upload API', () => {
     expect(mockDatabase.createRelease).toHaveBeenCalledWith({
       path: 'updates/1.0.0/timestamp.zip',
       runtimeVersion: '1.0.0',
+      channel: 'production',
       timestamp: expect.any(String),
       commitHash: 'abc123',
       commitMessage: 'Test commit message',

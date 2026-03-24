@@ -1,11 +1,9 @@
 import { createMocks } from 'node-mocks-http';
 
 import { DatabaseFactory } from '../apiUtils/database/DatabaseFactory';
-import { StorageFactory } from '../apiUtils/storage/StorageFactory';
 import releasesHandler from '../pages/api/releases';
 
 jest.mock('../apiUtils/database/DatabaseFactory');
-jest.mock('../apiUtils/storage/StorageFactory');
 
 describe('Releases API', () => {
   beforeEach(() => {
@@ -20,27 +18,20 @@ describe('Releases API', () => {
   });
 
   it('should return releases successfully', async () => {
-    const mockStorage = {
-      listDirectories: jest.fn().mockResolvedValue(['1.0.0']),
-      listFiles: jest.fn().mockResolvedValue([
-        {
-          name: 'update.zip',
-          created_at: '2024-03-20T00:00:00Z',
-          metadata: { size: 1000 },
-        },
-      ]),
-    };
-
     const mockDatabase = {
       listReleases: jest.fn().mockResolvedValue([
         {
-          path: 'updates/1.0.0/update.zip',
+          id: '1',
+          path: 'updates/production/1.0.0/update.zip',
+          runtimeVersion: '1.0.0',
+          channel: 'production',
+          timestamp: '2024-03-20T00:00:00Z',
           commitHash: 'abc123',
+          commitMessage: 'Test commit',
         },
       ]),
     };
 
-    (StorageFactory.getStorage as jest.Mock).mockReturnValue(mockStorage);
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
 
     const { req, res } = createMocks({ method: 'GET' });
@@ -50,12 +41,31 @@ describe('Releases API', () => {
     expect(JSON.parse(res._getData())).toMatchSnapshot();
   });
 
-  it('should handle errors gracefully', async () => {
-    const mockStorage = {
-      listDirectories: jest.fn().mockRejectedValue(new Error('Storage error')),
+  it('should filter releases by channel', async () => {
+    const mockDatabase = {
+      listReleases: jest.fn().mockResolvedValue([
+        { id: '1', path: 'updates/production/1.0.0/a.zip', runtimeVersion: '1.0.0', channel: 'production', timestamp: '2024-03-20T00:00:00Z', commitHash: 'abc', commitMessage: 'prod' },
+        { id: '2', path: 'updates/staging/1.0.0/b.zip', runtimeVersion: '1.0.0', channel: 'staging', timestamp: '2024-03-20T00:00:00Z', commitHash: 'def', commitMessage: 'staging' },
+      ]),
     };
 
-    (StorageFactory.getStorage as jest.Mock).mockReturnValue(mockStorage);
+    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
+
+    const { req, res } = createMocks({ method: 'GET', query: { channel: 'staging' } });
+    await releasesHandler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    const data = JSON.parse(res._getData());
+    expect(data.releases).toHaveLength(1);
+    expect(data.releases[0].channel).toBe('staging');
+  });
+
+  it('should handle errors gracefully', async () => {
+    const mockDatabase = {
+      listReleases: jest.fn().mockRejectedValue(new Error('DB error')),
+    };
+
+    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
 
     const { req, res } = createMocks({ method: 'GET' });
     await releasesHandler(req, res);
