@@ -31,21 +31,27 @@ export class UpdateHelper {
     channel: string = 'production'
   ): Promise<string> {
     const storage = StorageFactory.getStorage();
-    const updatesDirectoryForRuntimeVersion = `updates/${channel}/${runtimeVersion}`;
+    const channelDirectory = `updates/${channel}/${runtimeVersion}`;
+    const legacyDirectory = `updates/${runtimeVersion}`;
 
-    if (!(await storage.fileExists(updatesDirectoryForRuntimeVersion))) {
+    let directory: string;
+    if (await storage.fileExists(channelDirectory)) {
+      directory = channelDirectory;
+    } else if (await storage.fileExists(legacyDirectory)) {
+      directory = legacyDirectory;
+    } else {
       throw new NoUpdateAvailableError();
     }
 
-    const zipFiles = (await storage.listFiles(updatesDirectoryForRuntimeVersion))
+    const zipFiles = (await storage.listFiles(directory))
       .filter((file) => file.name.endsWith('.zip'))
       .sort((a, b) => parseInt(b.name.split('.')[0], 10) - parseInt(a.name.split('.')[0], 10));
 
     if (!zipFiles.length) {
-      throw new Error(`No updates found for runtime version: ${runtimeVersion}`);
+      throw new NoUpdateAvailableError();
     }
 
-    return `${updatesDirectoryForRuntimeVersion}/${zipFiles[0].name.replace('.zip', '')}`;
+    return `${directory}/${zipFiles[0].name.replace('.zip', '')}`;
   }
 
   static async getAssetMetadataAsync(arg: GetAssetMetadataArg) {
