@@ -236,7 +236,8 @@ export default function ReleasesPage() {
   );
 }
 
-function formatFileSize(bytes: number): string {
+function formatFileSize(bytes: number | undefined | null): string {
+  if (bytes == null) return '-';
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];

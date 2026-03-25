@@ -1,4 +1,4 @@
-import { Box, Flex, VStack, Button, FlexProps } from '@chakra-ui/react';
+import { Box, Flex, Button, HStack, FlexProps } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import { FaSignOutAlt, FaLayerGroup } from 'react-icons/fa';
 import Image from 'next/image';
@@ -7,7 +7,7 @@ export default function Layout({ children, ...props }: { children: React.ReactNo
   const router = useRouter();
 
   const navItems = [
-    { name: 'Channels', path: '/dashboard', icon: <FaLayerGroup fontSize="1.25rem" /> },
+    { name: 'Channels', path: '/dashboard', icon: <FaLayerGroup /> },
   ];
 
   const handleLogout = () => {
@@ -16,60 +16,55 @@ export default function Layout({ children, ...props }: { children: React.ReactNo
   };
 
   return (
-    <Box className="w-full" height="100vh" {...props}>
-      <Box
+    <Box minHeight="100vh" {...props}>
+      <Flex
+        as="nav"
         w="full"
-        p={4}
-        className=" text-white h-[6rem] border-b-gray-200 border-b-2"
-        display="flex"
+        px={6}
+        h="64px"
+        borderBottom="1px solid"
+        borderColor="gray.200"
         alignItems="center"
-        justifyContent="center"
-        position="relative">
-        <Box>
-          <Image
-            src="/xavia_logo.png"
-            width={200}
-            height={200}
-            style={{ objectFit: 'contain' }}
-            alt="Xavia Logo"
-          />
-        </Box>
-      </Box>
-      <Flex className="h-[calc(100vh-6rem)] ">
-        <Box
-          w="250px"
-          p={4}
-          className="h-full border-r-gray-200 border-r-2"
-          display="flex"
-          flexDirection="column"
-          justifyContent="space-between">
-          <VStack spacing={4} align="stretch">
-            {navItems.map((item) => (
-              <Button
-                key={item.path}
-                variant={router.pathname.startsWith(item.path) ? 'solid' : 'ghost'}
-                colorScheme={router.pathname.startsWith(item.path) ? 'primary' : 'gray'}
-                rightIcon={item.icon}
-                onClick={() => router.push(item.path)}
-                justifyContent="space-between">
-                <Box flex="1" textAlign="left">
-                  {item.name}
-                </Box>
-              </Button>
-            ))}
-          </VStack>
-          <Button
-            variant="outline"
-            colorScheme="red"
-            onClick={handleLogout}
-            rightIcon={<FaSignOutAlt />}>
-            Logout
-          </Button>
-        </Box>
-        <Box flex={1} p={8}>
-          {children}
-        </Box>
+        justifyContent="space-between"
+        bg="white"
+        position="sticky"
+        top={0}
+        zIndex={10}>
+        <Image
+          src="/xavia_logo.png"
+          width={120}
+          height={40}
+          style={{ objectFit: 'contain' }}
+          alt="Xavia Logo"
+        />
+
+        <HStack spacing={2}>
+          {navItems.map((item) => (
+            <Button
+              key={item.path}
+              size="sm"
+              variant={router.pathname.startsWith(item.path) ? 'solid' : 'ghost'}
+              colorScheme={router.pathname.startsWith(item.path) ? 'blue' : 'gray'}
+              leftIcon={item.icon}
+              onClick={() => router.push(item.path)}>
+              {item.name}
+            </Button>
+          ))}
+        </HStack>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          colorScheme="red"
+          leftIcon={<FaSignOutAlt />}
+          onClick={handleLogout}>
+          Logout
+        </Button>
       </Flex>
+
+      <Box p={8}>
+        {children}
+      </Box>
     </Box>
   );
 }

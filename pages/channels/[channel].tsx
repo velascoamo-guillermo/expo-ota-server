@@ -29,10 +29,20 @@ import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { FiArrowLeft } from 'react-icons/fi';
 import moment from 'moment';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import Layout from '../../components/Layout';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { showToast } from '../../components/toast';
 import { AllTrackingResponse } from '../api/tracking/all';
+import { MAUResponse } from '../api/tracking/mau';
 import { Release } from '../../apiUtils/database/DatabaseInterface';
 
 const CHANNEL_COLORS: Record<string, string> = {
@@ -59,6 +69,7 @@ export default function ChannelPage() {
 
   const [releases, setReleases] = useState<Release[]>([]);
   const [stats, setStats] = useState({ totalDownloads: 0, iosDownloads: 0, androidDownloads: 0 });
+  const [mauStats, setMauStats] = useState<{ month: string; mau: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
@@ -68,15 +79,18 @@ export default function ChannelPage() {
     if (!channel) return;
     setIsLoading(true);
     try {
-      const [releasesRes, trackingRes] = await Promise.all([
+      const [releasesRes, trackingRes, mauRes] = await Promise.all([
         fetch(`/api/releases?channel=${channel}`),
         fetch(`/api/tracking/all?channel=${channel}`),
+        fetch(`/api/tracking/mau?channel=${channel}`),
       ]);
 
       const releasesData = await releasesRes.json();
       const trackingData = (await trackingRes.json()) as AllTrackingResponse;
+      const mauData = (await mauRes.json()) as MAUResponse;
 
       setReleases(releasesData.releases ?? []);
+      setMauStats(mauData.stats ?? []);
 
       const ios = trackingData.trackings.find((m) => m.platform === 'ios')?.count ?? 0;
       const android = trackingData.trackings.find((m) => m.platform === 'android')?.count ?? 0;
@@ -153,6 +167,48 @@ export default function ChannelPage() {
 
           <Box>
             <Heading size="md" mb={4}>
+              Monthly Active Users
+            </Heading>
+            <Card variant="outline">
+              <CardBody>
+                {mauStats.length === 0 ? (
+                  <Text color="gray.400" fontSize="sm" textAlign="center" py={10}>
+                    No data yet. MAUs will appear once users start downloading updates.
+                  </Text>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={mauStats} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="mauGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <RechartsTooltip
+                        formatter={(value: number) => [value, 'MAU']}
+                        contentStyle={{ fontSize: 13 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="mau"
+                        stroke="#4F46E5"
+                        strokeWidth={2}
+                        fill="url(#mauGradient)"
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box>
+            <Heading size="md" mb={4}>
               Releases
             </Heading>
 
@@ -168,6 +224,7 @@ export default function ChannelPage() {
                     <Th>Runtime Version</Th>
                     <Th>Timestamp (UTC)</Th>
                     <Th>Size</Th>
+                    <Th>Downloads</Th>
                     <Th>Actions</Th>
                   </Tr>
                 </Thead>
@@ -192,7 +249,8 @@ export default function ChannelPage() {
                         </Tag>
                       </Td>
                       <Td>{moment(release.timestamp).utc().format('MMM Do, HH:mm')}</Td>
-                      <Td>{formatFileSize((release as any).size)}</Td>
+                      <Td>{formatFileSize(release.size)}</Td>
+                      <Td>{release.downloadCount ?? 0}</Td>
                       <Td>
                         {index === 0 ? (
                           <Tag colorScheme={getChannelColor(channel)} size="md">

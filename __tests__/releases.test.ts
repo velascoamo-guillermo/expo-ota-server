@@ -30,6 +30,7 @@ describe('Releases API', () => {
           commitMessage: 'Test commit',
         },
       ]),
+      getDownloadCountsPerRelease: jest.fn().mockResolvedValue({ '1': 5 }),
     };
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
@@ -47,6 +48,7 @@ describe('Releases API', () => {
         { id: '1', path: 'updates/production/1.0.0/a.zip', runtimeVersion: '1.0.0', channel: 'production', timestamp: '2024-03-20T00:00:00Z', commitHash: 'abc', commitMessage: 'prod' },
         { id: '2', path: 'updates/staging/1.0.0/b.zip', runtimeVersion: '1.0.0', channel: 'staging', timestamp: '2024-03-20T00:00:00Z', commitHash: 'def', commitMessage: 'staging' },
       ]),
+      getDownloadCountsPerRelease: jest.fn().mockResolvedValue({}),
     };
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
@@ -63,6 +65,7 @@ describe('Releases API', () => {
   it('should handle errors gracefully', async () => {
     const mockDatabase = {
       listReleases: jest.fn().mockRejectedValue(new Error('DB error')),
+      getDownloadCountsPerRelease: jest.fn().mockResolvedValue({}),
     };
 
     (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);

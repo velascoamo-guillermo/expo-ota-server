@@ -19,6 +19,7 @@ Object {
       "channel": "production",
       "commitHash": "abc123",
       "commitMessage": "Test commit",
+      "downloadCount": 5,
       "id": "1",
       "path": "updates/production/1.0.0/update.zip",
       "runtimeVersion": "1.0.0",
