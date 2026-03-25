@@ -7,6 +7,8 @@ export interface Release {
   commitHash: string;
   commitMessage: string;
   updateId?: string;
+  size?: number;
+  downloadCount?: number;
 }
 
 export interface Tracking {
@@ -14,11 +16,17 @@ export interface Tracking {
   releaseId: string;
   downloadTimestamp: string;
   platform: string;
+  deviceId?: string;
 }
 
 export interface TrackingMetrics {
   platform: string;
   count: number;
+}
+
+export interface MAUStat {
+  month: string;
+  mau: number;
 }
 
 export interface DatabaseInterface {
@@ -32,4 +40,6 @@ export interface DatabaseInterface {
   getReleaseTrackingMetricsByChannel(channel: string): Promise<TrackingMetrics[]>;
   listChannels(): Promise<string[]>;
   getLatestReleaseRecordForRuntimeVersionAndChannel(runtimeVersion: string, channel: string): Promise<Release | null>;
+  getDownloadCountsPerRelease(): Promise<Record<string, number>>;
+  getMAUStats(channel?: string): Promise<MAUStat[]>;
 }

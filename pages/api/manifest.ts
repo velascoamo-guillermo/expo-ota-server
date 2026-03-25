@@ -258,11 +258,14 @@ async function putUpdateInResponseAsync(
   const release = await database.getReleaseByPath(updateBundlePath + '.zip');
 
   if (release) {
-    logger.info(`Tracking download for release.`, { releaseId: release.id });
+    const deviceIdHeader = req.headers['eas-client-id'];
+    const deviceId = Array.isArray(deviceIdHeader) ? deviceIdHeader[0] : deviceIdHeader;
+    logger.info(`Tracking download for release.`, { releaseId: release.id, deviceId });
     await database.createTracking({
       platform,
       releaseId: release.id,
       downloadTimestamp: moment().utc().toISOString(),
+      deviceId,
     });
   }
 }

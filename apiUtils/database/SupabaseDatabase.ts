@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-import { DatabaseInterface, Release, Tracking, TrackingMetrics } from './DatabaseInterface';
+import { DatabaseInterface, MAUStat, Release, Tracking, TrackingMetrics } from './DatabaseInterface';
 import { Tables } from './DatabaseFactory';
 
 export class SupabaseDatabase implements DatabaseInterface {
@@ -129,6 +129,7 @@ export class SupabaseDatabase implements DatabaseInterface {
         release_id: tracking.releaseId,
         platform: tracking.platform,
         download_timestamp: tracking.downloadTimestamp,
+        device_id: tracking.deviceId ?? null,
       })
       .select()
       .single();
@@ -174,6 +175,7 @@ export class SupabaseDatabase implements DatabaseInterface {
         commit_hash: release.commitHash,
         commit_message: release.commitMessage,
         update_id: release.updateId,
+        size: release.size ?? null,
       })
       .select()
       .single();
@@ -219,5 +221,47 @@ export class SupabaseDatabase implements DatabaseInterface {
       commitHash: release.commit_hash,
       commitMessage: release.commit_message,
     }));
+  }
+
+  async getDownloadCountsPerRelease(): Promise<Record<string, number>> {
+    const { data, error } = await this.supabase
+      .from(Tables.RELEASES_TRACKING)
+      .select('release_id');
+
+    if (error) throw new Error(error.message);
+
+    return data.reduce<Record<string, number>>((acc, row) => {
+      acc[row.release_id] = (acc[row.release_id] ?? 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  async getMAUStats(channel?: string): Promise<MAUStat[]> {
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+    let query = this.supabase
+      .from(Tables.RELEASES_TRACKING)
+      .select(`device_id, download_timestamp, ${Tables.RELEASES}!inner(channel)`)
+      .not('device_id', 'is', null)
+      .gte('download_timestamp', twelveMonthsAgo.toISOString());
+
+    if (channel) {
+      query = query.eq(`${Tables.RELEASES}.channel`, channel);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const byMonth = new Map<string, Set<string>>();
+    for (const row of data) {
+      const month = row.download_timestamp.slice(0, 7);
+      if (!byMonth.has(month)) byMonth.set(month, new Set());
+      byMonth.get(month)!.add(row.device_id);
+    }
+
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, devices]) => ({ month, mau: devices.size }));
   }
 }

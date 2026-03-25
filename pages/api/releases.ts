@@ -8,9 +8,14 @@ export default async function releasesHandler(req: NextApiRequest, res: NextApiR
   }
 
   try {
+    const db = DatabaseFactory.getDatabase();
     const channel = (req.query.channel as string) ?? null;
-    const allReleases = await DatabaseFactory.getDatabase().listReleases();
-    const releases = channel ? allReleases.filter((r) => r.channel === channel) : allReleases;
+    const [allReleases, downloadCounts] = await Promise.all([
+      db.listReleases(),
+      db.getDownloadCountsPerRelease(),
+    ]);
+    const filtered = channel ? allReleases.filter((r) => r.channel === channel) : allReleases;
+    const releases = filtered.map((r) => ({ ...r, downloadCount: downloadCounts[r.id] ?? 0 }));
     res.status(200).json({ releases });
   } catch (error) {
     console.error('Failed to fetch releases:', error);

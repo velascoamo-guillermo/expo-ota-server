@@ -65,6 +65,7 @@ export default async function uploadHandler(req: NextApiRequest, res: NextApiRes
       commitHash,
       commitMessage,
       updateId,
+      size: zipContent.length,
     });
 
     res.status(200).json({ success: true, path });
