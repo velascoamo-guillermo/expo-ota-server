@@ -71,4 +71,76 @@ describe('Assets API', () => {
     expect(res._getStatusCode()).toBe(200);
     expect(res._getData()).toMatchSnapshot();
   });
+
+  it('should pass channel param to getLatestUpdateBundlePathForRuntimeVersionAsync', async () => {
+    const mockMetadata = {
+      metadataJson: {
+        fileMetadata: {
+          ios: {
+            assets: [{ path: 'test.png', ext: '.png' }],
+            bundle: 'bundle.js',
+          },
+        },
+      },
+    };
+
+    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockResolvedValue(
+      'path/to/update'
+    );
+    (UpdateHelper.getMetadataAsync as jest.Mock).mockResolvedValue(mockMetadata);
+    (ZipHelper.getZipFromStorage as jest.Mock).mockResolvedValue({});
+    (ZipHelper.getFileFromZip as jest.Mock).mockResolvedValue(Buffer.from('test'));
+
+    const { req, res } = createMocks({
+      method: 'GET',
+      query: {
+        asset: 'test.png',
+        platform: 'ios',
+        runtimeVersion: '1.0.0',
+        channel: 'staging',
+      },
+    });
+
+    await assetsEndpoint(req, res);
+    expect(res._getStatusCode()).toBe(200);
+    expect(UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync).toHaveBeenCalledWith(
+      '1.0.0',
+      'staging'
+    );
+  });
+
+  it('should default channel to production when not provided', async () => {
+    const mockMetadata = {
+      metadataJson: {
+        fileMetadata: {
+          ios: {
+            assets: [{ path: 'test.png', ext: '.png' }],
+            bundle: 'bundle.js',
+          },
+        },
+      },
+    };
+
+    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockResolvedValue(
+      'path/to/update'
+    );
+    (UpdateHelper.getMetadataAsync as jest.Mock).mockResolvedValue(mockMetadata);
+    (ZipHelper.getZipFromStorage as jest.Mock).mockResolvedValue({});
+    (ZipHelper.getFileFromZip as jest.Mock).mockResolvedValue(Buffer.from('test'));
+
+    const { req, res } = createMocks({
+      method: 'GET',
+      query: {
+        asset: 'test.png',
+        platform: 'ios',
+        runtimeVersion: '1.0.0',
+      },
+    });
+
+    await assetsEndpoint(req, res);
+    expect(UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync).toHaveBeenCalledWith(
+      '1.0.0',
+      'production'
+    );
+  });
 });

@@ -311,6 +311,114 @@ describe('Manifest API', () => {
     expect(UpdateHelper.createNoUpdateAvailableDirectiveAsync).toHaveBeenCalled();
   });
 
+  it('should use expo-channel-name header for channel-specific lookup', async () => {
+    const mockDatabase = {
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
+    } as unknown as DatabaseInterface;
+
+    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
+    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockRejectedValue(
+      new NoUpdateAvailableError()
+    );
+    (UpdateHelper.createNoUpdateAvailableDirectiveAsync as jest.Mock).mockResolvedValue({
+      type: 'noUpdateAvailable',
+    });
+
+    const mockFormData = {
+      append: jest.fn(),
+      getBoundary: jest.fn().mockReturnValue('boundary'),
+      getBuffer: jest.fn().mockReturnValue(Buffer.from('mock-form-data')),
+    };
+    (FormData as unknown as jest.Mock).mockImplementation(() => mockFormData);
+
+    const { req, res } = createMocks({
+      method: 'GET',
+      headers: {
+        'expo-platform': 'ios',
+        'expo-runtime-version': '1.0.0',
+        'expo-protocol-version': '1',
+        'expo-channel-name': 'staging',
+      },
+    });
+
+    await manifestEndpoint(req, res);
+
+    expect(mockDatabase.getLatestReleaseRecordForRuntimeVersionAndChannel).toHaveBeenCalledWith(
+      '1.0.0',
+      'staging'
+    );
+    expect(UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync).toHaveBeenCalledWith(
+      '1.0.0',
+      'staging'
+    );
+  });
+
+  it('should capture eas-client-id as deviceId in tracking', async () => {
+    const mockRelease: Release = {
+      id: 'release-id',
+      runtimeVersion: '1.0.0',
+      path: 'path/to/update.zip',
+      timestamp: '2024-03-20T00:00:00Z',
+      commitHash: 'abc123',
+      commitMessage: 'Test commit',
+      channel: 'production',
+      updateId: 'different-update-id',
+    };
+
+    const mockDatabase = {
+      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(mockRelease),
+      getReleaseByPath: jest.fn().mockResolvedValue(mockRelease),
+      createTracking: jest.fn().mockResolvedValue(undefined),
+    } as unknown as DatabaseInterface;
+
+    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
+
+    const mockMetadata = {
+      metadataJson: {
+        fileMetadata: { ios: { assets: [], bundle: 'bundle.js' } },
+      },
+      createdAt: '2024-03-20T00:00:00Z',
+      id: 'test-id',
+    };
+
+    (HashHelper.convertSHA256HashToUUID as jest.Mock).mockReturnValue('some-uuid');
+    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockResolvedValue(
+      'path/to/update'
+    );
+    (UpdateHelper.getMetadataAsync as jest.Mock).mockResolvedValue(mockMetadata);
+    (UpdateHelper.getAssetMetadataAsync as jest.Mock).mockResolvedValue({
+      hash: 'hash', key: 'key', fileExtension: '.js', contentType: 'application/javascript', url: 'url',
+    });
+    (ConfigHelper.getExpoConfigAsync as jest.Mock).mockResolvedValue({});
+    (ZipHelper.getZipFromStorage as jest.Mock).mockResolvedValue({ getEntry: jest.fn().mockReturnValue(null) });
+
+    const mockFormData = {
+      append: jest.fn(),
+      getBoundary: jest.fn().mockReturnValue('boundary'),
+      getBuffer: jest.fn().mockReturnValue(Buffer.from('mock-form-data')),
+    };
+    (FormData as unknown as jest.Mock).mockImplementation(() => mockFormData);
+
+    const { req, res } = createMocks({
+      method: 'GET',
+      headers: {
+        'expo-platform': 'ios',
+        'expo-runtime-version': '1.0.0',
+        'expo-protocol-version': '1',
+        'expo-current-update-id': 'current-update-id',
+        'eas-client-id': '8FC8EFE3-B0DF-4F27-9D2A-F2BFDDA540AC',
+      },
+    });
+
+    await manifestEndpoint(req, res);
+
+    expect(mockDatabase.createTracking).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deviceId: '8FC8EFE3-B0DF-4F27-9D2A-F2BFDDA540AC',
+      })
+    );
+  });
+
   it('should handle NoUpdateAvailable error from UpdateHelper', async () => {
     // Mock database
     const mockDatabase = {
