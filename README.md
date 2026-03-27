@@ -66,7 +66,7 @@ expo-ota-server provides a complete OTA update infrastructure with these key com
    ```bash
    git clone https://github.com/velascoamo-guillermo/expo-ota-server.git
    cd expo-ota-server
-   npm install
+   bun install
    ```
 
 2. Copy the example env file:
@@ -91,7 +91,7 @@ expo-ota-server provides a complete OTA update infrastructure with these key com
 
 4. Start the development server:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 The server and admin dashboard will be available at `http://localhost:3000`.
