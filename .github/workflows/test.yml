@@ -10,20 +10,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 18.x
-      - name: npm
-        run: npm install
-        working-directory: ./
-      - name: tsc
-        run: npx tsc
-        working-directory: ./
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Type check
+        run: bunx tsc --noEmit
       - name: Lint
-        run: npm run lint
-        working-directory: ./
+        run: bun run lint
       - name: Test
-        run: npm run test
-        working-directory: ./
+        run: bun run test

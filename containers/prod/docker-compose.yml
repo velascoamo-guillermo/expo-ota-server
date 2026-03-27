@@ -1,6 +1,6 @@
 services:
-  xavia-ota:
-    image: xaviaio/xavia-ota:latest
+  expo-ota-server:
+    image: gvelascoamo/expo-ota-server:latest
     ports:
       - '3000:3000'
     environment:

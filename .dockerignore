@@ -2,7 +2,9 @@ Dockerfile
 .dockerignore
 node_modules
 npm-debug.log
+bun-debug.log
 README.md
 .next
 .git
 local-releases
+.ota-builds
