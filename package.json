@@ -1,6 +1,6 @@
 {
-  "name": "xavia-ota-updates",
-  "version": "2.0.3",
+  "name": "expo-ota-server",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "dev": "make -f ./scripts/dev/Makefile",
