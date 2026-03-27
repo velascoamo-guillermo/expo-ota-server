@@ -12,6 +12,7 @@ import {
   HStack,
   Text,
   Heading,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { FiZap } from 'react-icons/fi';
 
@@ -19,6 +20,10 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
+
+  const bgPage = useColorModeValue('gray.50', 'gray.900');
+  const bgCard = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +48,7 @@ export default function Home() {
   };
 
   return (
-    <Box display="flex" minHeight="100vh" alignItems="center" justifyContent="center" bg="gray.50">
+    <Box display="flex" minHeight="100vh" alignItems="center" justifyContent="center" bg={bgPage}>
       <VStack spacing={8} w="full" maxW="360px" px={4}>
         <VStack spacing={2}>
           <HStack spacing={2}>
@@ -59,7 +64,7 @@ export default function Home() {
           </Text>
         </VStack>
 
-        <Box w="full" bg="white" borderRadius="xl" borderWidth={1} borderColor="gray.200" p={6}>
+        <Box w="full" bg={bgCard} borderRadius="xl" borderWidth={1} borderColor={borderColor} p={6}>
           <form onSubmit={handleLogin}>
             <VStack spacing={4}>
               <FormControl isInvalid={!!error}>

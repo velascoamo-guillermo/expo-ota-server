@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   Skeleton,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
@@ -74,6 +75,11 @@ export default function ChannelPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+
+  const gridStroke = useColorModeValue('#E2E8F0', '#2D3748');
+  const tooltipBg = useColorModeValue('#fff', '#1A202C');
+  const tooltipBorder = useColorModeValue('#E2E8F0', '#2D3748');
+  const tooltipColor = useColorModeValue('#1A202C', '#E2E8F0');
 
   const fetchData = async () => {
     if (!channel) return;
@@ -188,10 +194,10 @@ export default function ChannelPage() {
                           <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} domain={[0, 'auto']} tickCount={5} />
-                      <RechartsTooltip contentStyle={{ fontSize: 13 }} />
+                      <RechartsTooltip contentStyle={{ fontSize: 13, backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipColor }} />
                       <Area
                         type="monotone"
                         dataKey="ios"
