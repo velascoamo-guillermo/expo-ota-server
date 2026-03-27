@@ -128,28 +128,27 @@ See docs on the `updates.url` parameter [here](https://docs.expo.dev/versions/la
 
 ## Publish App Update
 
-We provide a simple script `build-and-publish-app-release.sh` in the `scripts` folder to build and publish your app updates, copy it to your RN app root folder and run it from there:
+Copy `scripts/build-and-publish-app-release.sh` to your React Native app root and run it from there:
 
 ```shell
-./build-and-publish-app-release.sh <runtimeVersion> <your-xavia-ota-url> <uploadKey>
+./build-and-publish-app-release.sh [channel]
 ```
 
-> **Important**: Make sure the runtime version is the same as the one you use in your expo-updates config in your app. 
-> Refer to the [React Native app configuration](#react-native-app-configuration) for more information.
+`channel` defaults to `development`. Valid values: `development`, `preview`, `production`.
+
+The script reads `OTA_URL` and `UPLOAD_KEY` from your app's `.env.local`, and `runtimeVersion` from `app.json` automatically.
 
 Example:
 ```shell
-./build-and-publish-app-release.sh 1.0.0 http://localhost:3000 abc123def456
+./build-and-publish-app-release.sh production
 ```
 
 This script will:
-1. Build your app using `expo export`
+1. Export your app using `expo export`
 2. Package the update with metadata
-3. Upload it to your Xavia OTA server
+3. Upload it to your expo-ota-server
 
-The script will show you the commit hash and message for confirmation before uploading.
-
-> **Note**: Make sure the script is executable (`chmod +x scripts/build-and-publish-app-release.sh`)
+> **Note**: Make sure the script is executable (`chmod +x build-and-publish-app-release.sh`)
 
 ## Rollbacks
 
