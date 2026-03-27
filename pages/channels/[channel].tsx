@@ -69,7 +69,7 @@ export default function ChannelPage() {
 
   const [releases, setReleases] = useState<Release[]>([]);
   const [stats, setStats] = useState({ totalDownloads: 0, iosDownloads: 0, androidDownloads: 0 });
-  const [mauStats, setMauStats] = useState<{ month: string; mau: number }[]>([]);
+  const [mauStats, setMauStats] = useState<{ month: string; ios: number; android: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
@@ -179,24 +179,36 @@ export default function ChannelPage() {
                   <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={mauStats} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                       <defs>
-                        <linearGradient id="mauGradient" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="iosGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3} />
                           <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="androidGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                      <RechartsTooltip
-                        formatter={(value) => [`${value ?? 0}`, 'MAU']}
-                        contentStyle={{ fontSize: 13 }}
+                      <RechartsTooltip contentStyle={{ fontSize: 13 }} />
+                      <Area
+                        type="monotone"
+                        dataKey="ios"
+                        name="iOS"
+                        stroke="#4F46E5"
+                        strokeWidth={2}
+                        fill="url(#iosGradient)"
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
                       />
                       <Area
                         type="monotone"
-                        dataKey="mau"
-                        stroke="#4F46E5"
+                        dataKey="android"
+                        name="Android"
+                        stroke="#10B981"
                         strokeWidth={2}
-                        fill="url(#mauGradient)"
+                        fill="url(#androidGradient)"
                         dot={{ r: 3 }}
                         activeDot={{ r: 5 }}
                       />

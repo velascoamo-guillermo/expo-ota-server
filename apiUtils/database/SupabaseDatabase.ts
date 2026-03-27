@@ -242,7 +242,7 @@ export class SupabaseDatabase implements DatabaseInterface {
 
     let query = this.supabase
       .from(Tables.RELEASES_TRACKING)
-      .select(`device_id, download_timestamp, ${Tables.RELEASES}!inner(channel)`)
+      .select(`device_id, platform, download_timestamp, ${Tables.RELEASES}!inner(channel)`)
       .not('device_id', 'is', null)
       .gte('download_timestamp', twelveMonthsAgo.toISOString());
 
@@ -253,15 +253,17 @@ export class SupabaseDatabase implements DatabaseInterface {
     const { data, error } = await query;
     if (error) throw new Error(error.message);
 
-    const byMonth = new Map<string, Set<string>>();
+    const byMonth = new Map<string, { ios: Set<string>; android: Set<string> }>();
     for (const row of data) {
       const month = row.download_timestamp.slice(0, 7);
-      if (!byMonth.has(month)) byMonth.set(month, new Set());
-      byMonth.get(month)!.add(row.device_id);
+      if (!byMonth.has(month)) byMonth.set(month, { ios: new Set(), android: new Set() });
+      const bucket = byMonth.get(month)!;
+      if (row.platform === 'ios') bucket.ios.add(row.device_id);
+      else if (row.platform === 'android') bucket.android.add(row.device_id);
     }
 
     return Array.from(byMonth.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, devices]) => ({ month, mau: devices.size }));
+      .map(([month, { ios, android }]) => ({ month, ios: ios.size, android: android.size }));
   }
 }

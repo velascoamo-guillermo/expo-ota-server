@@ -26,7 +26,8 @@ export interface TrackingMetrics {
 
 export interface MAUStat {
   month: string;
-  mau: number;
+  ios: number;
+  android: number;
 }
 
 export interface DatabaseInterface {

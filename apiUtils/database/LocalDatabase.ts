@@ -149,7 +149,8 @@ export class PostgresDatabase implements DatabaseInterface {
   async getMAUStats(channel?: string): Promise<MAUStat[]> {
     const baseQuery = `
       SELECT TO_CHAR(DATE_TRUNC('month', rt.download_timestamp), 'YYYY-MM') as month,
-             COUNT(DISTINCT rt.device_id) as mau
+             COUNT(DISTINCT CASE WHEN rt.platform = 'ios' THEN rt.device_id END) as ios,
+             COUNT(DISTINCT CASE WHEN rt.platform = 'android' THEN rt.device_id END) as android
       FROM ${Tables.RELEASES_TRACKING} rt
       JOIN ${Tables.RELEASES} r ON r.id = rt.release_id
       WHERE rt.device_id IS NOT NULL
@@ -159,6 +160,6 @@ export class PostgresDatabase implements DatabaseInterface {
       ORDER BY month ASC
     `;
     const { rows } = await this.pool.query(baseQuery, channel ? [channel] : []);
-    return rows.map((r) => ({ month: r.month, mau: Number(r.mau) }));
+    return rows.map((r) => ({ month: r.month, ios: Number(r.ios), android: Number(r.android) }));
   }
 }

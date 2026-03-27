@@ -19,9 +19,9 @@ describe('MAU Tracking API', () => {
   it('should return MAU stats for all channels', async () => {
     const mockDatabase = {
       getMAUStats: jest.fn().mockResolvedValue([
-        { month: '2026-01', mau: 100 },
-        { month: '2026-02', mau: 120 },
-        { month: '2026-03', mau: 95 },
+        { month: '2026-01', ios: 80, android: 20 },
+        { month: '2026-02', ios: 90, android: 30 },
+        { month: '2026-03', ios: 70, android: 25 },
       ]),
     };
 
@@ -33,15 +33,15 @@ describe('MAU Tracking API', () => {
     expect(res._getStatusCode()).toBe(200);
     const data = JSON.parse(res._getData());
     expect(data.stats).toHaveLength(3);
-    expect(data.stats[0]).toEqual({ month: '2026-01', mau: 100 });
+    expect(data.stats[0]).toEqual({ month: '2026-01', ios: 80, android: 20 });
     expect(mockDatabase.getMAUStats).toHaveBeenCalledWith(undefined);
   });
 
   it('should filter MAU stats by channel', async () => {
     const mockDatabase = {
       getMAUStats: jest.fn().mockResolvedValue([
-        { month: '2026-02', mau: 50 },
-        { month: '2026-03', mau: 60 },
+        { month: '2026-02', ios: 40, android: 10 },
+        { month: '2026-03', ios: 50, android: 10 },
       ]),
     };
 
