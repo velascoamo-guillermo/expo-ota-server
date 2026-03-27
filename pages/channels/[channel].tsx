@@ -188,7 +188,7 @@ export default function ChannelPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                       <RechartsTooltip
-                        formatter={(value: number) => [value, 'MAU']}
+                        formatter={(value) => [`${value ?? 0}`, 'MAU']}
                         contentStyle={{ fontSize: 13 }}
                       />
                       <Area
@@ -249,7 +249,7 @@ export default function ChannelPage() {
                         </Tag>
                       </Td>
                       <Td>{moment(release.timestamp).utc().format('MMM Do, HH:mm')}</Td>
-                      <Td>{formatFileSize(release.size)}</Td>
+                      <Td>{formatFileSize(release.size ?? 0)}</Td>
                       <Td>{release.downloadCount ?? 0}</Td>
                       <Td>
                         {index === 0 ? (

@@ -42,7 +42,6 @@ describe('Tracking All API', () => {
     expect(data.totalReleases).toBe(2);
     expect(data.channels).toEqual(['production', 'staging']);
     expect(mockDatabase.getReleaseTrackingMetricsForAllReleases).toHaveBeenCalled();
-    expect(mockDatabase.getReleaseTrackingMetricsByChannel).toBeUndefined;
   });
 
   it('should filter tracking metrics by channel', async () => {
