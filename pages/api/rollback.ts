@@ -10,7 +10,7 @@ export default async function rollbackHandler(req: NextApiRequest, res: NextApiR
     return;
   }
 
-  const { path, runtimeVersion, commitHash, commitMessage } = req.body;
+  const { path, runtimeVersion, commitHash, commitMessage, channel = 'production' } = req.body;
 
   if (!path) {
     res.status(400).json({ error: 'Missing path' });
@@ -31,13 +31,14 @@ export default async function rollbackHandler(req: NextApiRequest, res: NextApiR
     const storage = StorageFactory.getStorage();
 
     const timestamp = moment().utc().format('YYYYMMDDHHmmss');
-    const newPath = `updates/${runtimeVersion}/${timestamp}.zip`;
+    const newPath = `updates/${channel}/${runtimeVersion}/${timestamp}.zip`;
 
     await storage.copyFile(path, newPath);
 
     await DatabaseFactory.getDatabase().createRelease({
       path: newPath,
       runtimeVersion,
+      channel,
       timestamp: moment().utc().toString(),
       commitHash,
       commitMessage,

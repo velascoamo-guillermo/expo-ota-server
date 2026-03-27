@@ -32,6 +32,7 @@ import { showToast } from '../components/toast';
 interface Release {
   path: string;
   runtimeVersion: string;
+  channel: string;
   timestamp: string;
   size: number;
   commitHash: string | null;
@@ -90,6 +91,7 @@ export default function ReleasesPage() {
                 <Thead>
                   <Tr>
                     <Th>Name</Th>
+                    <Th>Channel</Th>
                     <Th>Runtime Version</Th>
                     <Th>Commit Hash</Th>
                     <Th>Commit Message</Th>
@@ -106,6 +108,18 @@ export default function ReleasesPage() {
                     .map((release, index) => (
                       <Tr key={index}>
                         <Td>{release.path}</Td>
+                        <Td>
+                          <Tag
+                            colorScheme={
+                              release.channel === 'production'
+                                ? 'blue'
+                                : release.channel === 'staging'
+                                  ? 'purple'
+                                  : 'gray'
+                            }>
+                            {release.channel ?? 'production'}
+                          </Tag>
+                        </Td>
                         <Td>{release.runtimeVersion}</Td>
                         <Td>
                           <Tooltip label={release.commitHash}>
@@ -135,11 +149,77 @@ export default function ReleasesPage() {
                               variant="solid"
                               colorScheme="orange"
                               size="sm"
-                              onClick={() => {
-                                setSelectedRelease(release);
+                              onClick={async () => {
                                 setIsOpen(true);
-                              }}
-                            >
+                                setSelectedRelease(release);
+                              }}>
+                              <AlertDialog
+                                isOpen={isOpen}
+                                leastDestructiveRef={cancelRef}
+                                onClose={() => setIsOpen(false)}
+                                isCentered>
+                                <AlertDialogOverlay>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                                      Rollback Release
+                                    </AlertDialogHeader>
+
+                                    <AlertDialogBody>
+                                      Are you sure you want to rollback to this release?
+                                      <Tag
+                                        size="lg"
+                                        colorScheme="green"
+                                        mt={4}
+                                        padding={4}
+                                        className="w-full">
+                                        <Text fontSize="sm">
+                                          Commit Hash: {selectedRelease?.commitHash}
+                                        </Text>
+                                      </Tag>
+                                      <Tag size="lg" colorScheme="orange" mt={4} padding={4}>
+                                        <Text fontSize="sm">
+                                          This will promote this release to be the active release
+                                          with a new timestamp.
+                                        </Text>
+                                      </Tag>
+                                    </AlertDialogBody>
+
+                                    <AlertDialogFooter>
+                                      <Button ref={cancelRef} onClick={() => setIsOpen(false)}>
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        colorScheme="red"
+                                        onClick={async () => {
+                                          const response = await fetch('/api/rollback', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                              path: selectedRelease?.path,
+                                              runtimeVersion: selectedRelease?.runtimeVersion,
+                                              channel: selectedRelease?.channel ?? 'production',
+                                              commitHash: selectedRelease?.commitHash,
+                                              commitMessage: selectedRelease?.commitMessage,
+                                            }),
+                                          });
+
+                                          if (!response.ok) {
+                                            throw new Error('Rollback failed');
+                                          }
+
+                                          showToast('Rollback successful', 'success');
+                                          fetchReleases();
+                                          setIsOpen(false);
+                                        }}
+                                        ml={3}>
+                                        Rollback
+                                      </Button>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialogOverlay>
+                              </AlertDialog>
                               Rollback to this release
                             </Button>
                           )}
@@ -149,68 +229,6 @@ export default function ReleasesPage() {
                 </Tbody>
               </Table>
             )}
-
-            <AlertDialog
-              isOpen={isOpen}
-              leastDestructiveRef={cancelRef}
-              onClose={() => setIsOpen(false)}
-              isCentered
-            >
-              <AlertDialogOverlay>
-                <AlertDialogContent>
-                  <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                    Rollback Release
-                  </AlertDialogHeader>
-
-                  <AlertDialogBody>
-                    Are you sure you want to rollback to this release?
-                    <Tag size="lg" colorScheme="green" mt={4} padding={4} className="w-full">
-                      <Text fontSize="sm">Commit Hash: {selectedRelease?.commitHash}</Text>
-                    </Tag>
-                    <Tag size="lg" colorScheme="orange" mt={4} padding={4}>
-                      <Text fontSize="sm">
-                        This will promote this release to be the active release with a new
-                        timestamp.
-                      </Text>
-                    </Tag>
-                  </AlertDialogBody>
-
-                  <AlertDialogFooter>
-                    <Button ref={cancelRef} onClick={() => setIsOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      colorScheme="red"
-                      onClick={async () => {
-                        const response = await fetch('/api/rollback', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            path: selectedRelease?.path,
-                            runtimeVersion: selectedRelease?.runtimeVersion,
-                            commitHash: selectedRelease?.commitHash,
-                            commitMessage: selectedRelease?.commitMessage,
-                          }),
-                        });
-
-                        if (!response.ok) {
-                          throw new Error('Rollback failed');
-                        }
-
-                        showToast('Rollback successful', 'success');
-                        fetchReleases();
-                        setIsOpen(false);
-                      }}
-                      ml={3}
-                    >
-                      Rollback
-                    </Button>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialogOverlay>
-            </AlertDialog>
           </Flex>
         </Box>
       </Layout>
@@ -218,7 +236,8 @@ export default function ReleasesPage() {
   );
 }
 
-function formatFileSize(bytes: number): string {
+function formatFileSize(bytes: number | undefined | null): string {
+  if (bytes == null) return '-';
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];

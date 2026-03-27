@@ -31,6 +31,7 @@ export default async function uploadHandler(req: NextApiRequest, res: NextApiRes
     const runtimeVersion = fields.runtimeVersion?.[0];
     const commitHash = fields.commitHash?.[0];
     const commitMessage = fields.commitMessage?.[0] || 'No message provided';
+    const channel = fields.channel?.[0] || 'production';
 
     if (!uploadKey || !file || !runtimeVersion || !commitHash) {
       res.status(400).json({ error: 'Missing upload key, file, runtime version or commit hash' });
@@ -44,7 +45,7 @@ export default async function uploadHandler(req: NextApiRequest, res: NextApiRes
 
     const storage = StorageFactory.getStorage();
     const timestamp = moment().utc().format('YYYYMMDDHHmmss');
-    const updatePath = `updates/${runtimeVersion}`;
+    const updatePath = `updates/${channel}/${runtimeVersion}`;
 
     // Store the zipped file as is
     const zipContent = fs.readFileSync(file.filepath);
@@ -59,10 +60,12 @@ export default async function uploadHandler(req: NextApiRequest, res: NextApiRes
     await DatabaseFactory.getDatabase().createRelease({
       path,
       runtimeVersion,
+      channel,
       timestamp: moment().utc().toString(),
       commitHash,
       commitMessage,
       updateId,
+      size: zipContent.length,
     });
 
     res.status(200).json({ success: true, path });

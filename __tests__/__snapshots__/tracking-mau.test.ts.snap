@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MAU Tracking API should handle DB errors gracefully 1`] = `
+Object {
+  "error": "Failed to fetch MAU stats",
+}
+`;
+
+exports[`MAU Tracking API should return 405 for non-GET requests 1`] = `
+Object {
+  "error": "Method not allowed",
+}
+`;

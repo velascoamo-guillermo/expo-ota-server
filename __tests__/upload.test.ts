@@ -86,10 +86,12 @@ describe('Upload API', () => {
     expect(mockDatabase.createRelease).toHaveBeenCalledWith({
       path: 'updates/1.0.0/timestamp.zip',
       runtimeVersion: '1.0.0',
+      channel: 'production',
       timestamp: expect.any(String),
       commitHash: 'abc123',
       commitMessage: 'Test commit message',
       updateId: mockUpdateId,
+      size: expect.any(Number),
     });
     expect(ZipHelper.getFileFromZip).toHaveBeenCalledWith(mockZipFolder, 'metadata.json');
     expect(HashHelper.createHash).toHaveBeenCalledWith(mockMetadataContent, 'sha256', 'hex');

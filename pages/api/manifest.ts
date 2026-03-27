@@ -27,6 +27,7 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
     protocolVersion: req.headers['expo-protocol-version'],
     apiVersion: req.headers['expo-api-version'],
     currentUpdateId: req.headers['expo-current-update-id'],
+    channel: req.headers['expo-channel-name'],
   });
 
   const protocolVersionMaybeArray = req.headers['expo-protocol-version'];
@@ -58,8 +59,15 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
     return;
   }
 
+  const channelMaybeArray = req.headers['expo-channel-name'];
+  const channel =
+    (Array.isArray(channelMaybeArray) ? channelMaybeArray[0] : channelMaybeArray) ?? 'production';
+
   const database = DatabaseFactory.getDatabase();
-  const releaseRecord = await database.getLatestReleaseRecordForRuntimeVersion(runtimeVersion);
+  const releaseRecord = await database.getLatestReleaseRecordForRuntimeVersionAndChannel(
+    runtimeVersion,
+    channel
+  );
 
   if (releaseRecord) {
     const updateId = releaseRecord.updateId;
@@ -68,6 +76,7 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
     if (currentUpdateId === updateId) {
       logger.info('User is already running the latest release. Returning NoUpdateAvailable.', {
         runtimeVersion,
+        channel,
       });
       await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
       return;
@@ -77,7 +86,8 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
   let updateBundlePath: string;
   try {
     updateBundlePath = await UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync(
-      runtimeVersion
+      runtimeVersion,
+      channel
     );
   } catch (error: any) {
     if (error instanceof NoUpdateAvailableError) {
@@ -105,7 +115,8 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
           updateBundlePath,
           runtimeVersion,
           platform,
-          protocolVersion
+          protocolVersion,
+          channel
         );
       } else if (updateType === UpdateType.ROLLBACK) {
         logger.info('Rollback is available.');
@@ -143,7 +154,8 @@ async function putUpdateInResponseAsync(
   updateBundlePath: string,
   runtimeVersion: string,
   platform: string,
-  protocolVersion: number
+  protocolVersion: number,
+  channel: string
 ): Promise<void> {
   const currentUpdateId = req.headers['expo-current-update-id'];
   const { metadataJson, createdAt, id } = await UpdateHelper.getMetadataAsync({
@@ -175,6 +187,7 @@ async function putUpdateInResponseAsync(
           ext: asset.ext,
           runtimeVersion,
           platform,
+          channel,
           isLaunchAsset: false,
         })
       )
@@ -185,6 +198,7 @@ async function putUpdateInResponseAsync(
       isLaunchAsset: true,
       runtimeVersion,
       platform,
+      channel,
       ext: null,
     }),
     metadata: {},
@@ -244,11 +258,14 @@ async function putUpdateInResponseAsync(
   const release = await database.getReleaseByPath(updateBundlePath + '.zip');
 
   if (release) {
-    logger.info(`Tracking download for release.`, { releaseId: release.id });
+    const deviceIdHeader = req.headers['eas-client-id'];
+    const deviceId = Array.isArray(deviceIdHeader) ? deviceIdHeader[0] : deviceIdHeader;
+    logger.info(`Tracking download for release.`, { releaseId: release.id, deviceId });
     await database.createTracking({
       platform,
       releaseId: release.id,
       downloadTimestamp: moment().utc().toISOString(),
+      deviceId,
     });
   }
 }

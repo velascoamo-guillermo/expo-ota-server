@@ -13,6 +13,7 @@ export type GetAssetMetadataArg =
       isLaunchAsset: true;
       runtimeVersion: string;
       platform: string;
+      channel: string;
     }
   | {
       updateBundlePath: string;
@@ -21,28 +22,36 @@ export type GetAssetMetadataArg =
       isLaunchAsset: false;
       runtimeVersion: string;
       platform: string;
+      channel: string;
     };
 
 export class UpdateHelper {
   static async getLatestUpdateBundlePathForRuntimeVersionAsync(
-    runtimeVersion: string
+    runtimeVersion: string,
+    channel: string = 'production'
   ): Promise<string> {
     const storage = StorageFactory.getStorage();
-    const updatesDirectoryForRuntimeVersion = `updates/${runtimeVersion}`;
+    const channelDirectory = `updates/${channel}/${runtimeVersion}`;
+    const legacyDirectory = `updates/${runtimeVersion}`;
 
-    if (!(await storage.fileExists(updatesDirectoryForRuntimeVersion))) {
+    let directory: string;
+    if (await storage.fileExists(channelDirectory)) {
+      directory = channelDirectory;
+    } else if (await storage.fileExists(legacyDirectory)) {
+      directory = legacyDirectory;
+    } else {
       throw new NoUpdateAvailableError();
     }
 
-    const zipFiles = (await storage.listFiles(updatesDirectoryForRuntimeVersion))
+    const zipFiles = (await storage.listFiles(directory))
       .filter((file) => file.name.endsWith('.zip'))
       .sort((a, b) => parseInt(b.name.split('.')[0], 10) - parseInt(a.name.split('.')[0], 10));
 
     if (!zipFiles.length) {
-      throw new Error(`No updates found for runtime version: ${runtimeVersion}`);
+      throw new NoUpdateAvailableError();
     }
 
-    return `${updatesDirectoryForRuntimeVersion}/${zipFiles[0].name.replace('.zip', '')}`;
+    return `${directory}/${zipFiles[0].name.replace('.zip', '')}`;
   }
 
   static async getAssetMetadataAsync(arg: GetAssetMetadataArg) {
@@ -61,7 +70,7 @@ export class UpdateHelper {
       key,
       fileExtension: `.${keyExtensionSuffix}`,
       contentType,
-      url: `${process.env.HOST}/api/assets?asset=${arg.filePath}&runtimeVersion=${arg.runtimeVersion}&platform=${arg.platform}`,
+      url: `${process.env.HOST}/api/assets?asset=${arg.filePath}&runtimeVersion=${arg.runtimeVersion}&platform=${arg.platform}&channel=${arg.channel}`,
     };
   }
 
