@@ -190,7 +190,7 @@ export default function ChannelPage() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} domain={[0, 'auto']} tickCount={5} />
                       <RechartsTooltip contentStyle={{ fontSize: 13 }} />
                       <Area
                         type="monotone"
