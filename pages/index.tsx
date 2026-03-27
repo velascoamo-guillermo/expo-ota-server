@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { Box, Button, FormControl, FormErrorMessage, Input } from '@chakra-ui/react';
+import {
+  Box,
+  Button,
+  FormControl,
+  FormErrorMessage,
+  Input,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+} from '@chakra-ui/react';
+import { FiZap } from 'react-icons/fi';
 
 export default function Home() {
   const [password, setPassword] = useState('');
@@ -32,22 +43,42 @@ export default function Home() {
   };
 
   return (
-    <Box display="flex" minHeight="100vh" alignItems="center" justifyContent="center">
-      <form onSubmit={handleLogin}>
-        <FormControl isInvalid={!!error} mb={4}>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter admin password"
-            size="md"
-          />
-          {error && <FormErrorMessage>{error}</FormErrorMessage>}
-        </FormControl>
-        <Button type="submit" colorScheme="blue" width="full">
-          Login
-        </Button>
-      </form>
+    <Box display="flex" minHeight="100vh" alignItems="center" justifyContent="center" bg="gray.50">
+      <VStack spacing={8} w="full" maxW="360px" px={4}>
+        <VStack spacing={2}>
+          <HStack spacing={2}>
+            <Box color="blue.500">
+              <FiZap size={28} />
+            </Box>
+            <Heading size="lg" letterSpacing="tight">
+              OTA Server
+            </Heading>
+          </HStack>
+          <Text color="gray.500" fontSize="sm">
+            Admin Dashboard
+          </Text>
+        </VStack>
+
+        <Box w="full" bg="white" borderRadius="xl" borderWidth={1} borderColor="gray.200" p={6}>
+          <form onSubmit={handleLogin}>
+            <VStack spacing={4}>
+              <FormControl isInvalid={!!error}>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Admin password"
+                  size="md"
+                />
+                {error && <FormErrorMessage>{error}</FormErrorMessage>}
+              </FormControl>
+              <Button type="submit" colorScheme="blue" width="full">
+                Sign in
+              </Button>
+            </VStack>
+          </form>
+        </Box>
+      </VStack>
     </Box>
   );
 }

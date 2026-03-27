@@ -1,7 +1,7 @@
-import { Box, Flex, Button, HStack, FlexProps } from '@chakra-ui/react';
+import { Box, Flex, Button, HStack, Text, FlexProps } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import { FaSignOutAlt, FaLayerGroup } from 'react-icons/fa';
-import Image from 'next/image';
+import { FiZap } from 'react-icons/fi';
 
 export default function Layout({ children, ...props }: { children: React.ReactNode } & FlexProps) {
   const router = useRouter();
@@ -30,13 +30,14 @@ export default function Layout({ children, ...props }: { children: React.ReactNo
         position="sticky"
         top={0}
         zIndex={10}>
-        <Image
-          src="/xavia_logo.png"
-          width={120}
-          height={40}
-          style={{ objectFit: 'contain' }}
-          alt="Xavia Logo"
-        />
+        <HStack spacing={2} cursor="pointer" onClick={() => router.push('/dashboard')}>
+          <Box color="blue.500">
+            <FiZap size={20} />
+          </Box>
+          <Text fontWeight="bold" fontSize="md" letterSpacing="tight">
+            OTA Server
+          </Text>
+        </HStack>
 
         <HStack spacing={2}>
           {navItems.map((item) => (
