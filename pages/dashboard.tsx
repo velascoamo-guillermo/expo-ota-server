@@ -38,7 +38,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetch('/api/channels')
       .then((r) => r.json())
-      .then((data: ChannelsResponse) => setChannels(data.channels))
+      .then((data: ChannelsResponse) => setChannels(data.channels ?? []))
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
