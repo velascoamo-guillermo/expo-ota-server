@@ -40,10 +40,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/xavia-ota:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/xavia-ota:${{ env.VERSION }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/xavia-ota:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/xavia-ota:buildcache,mode=max
+            ${{ secrets.DOCKERHUB_USERNAME }}/expo-ota-server:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/expo-ota-server:${{ env.VERSION }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/expo-ota-server:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/expo-ota-server:buildcache,mode=max
 
       - name: Get Changelog Entry
         id: changelog

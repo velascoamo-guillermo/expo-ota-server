@@ -140,18 +140,27 @@ To use channels, set the `expo-channel-name` header in your app config:
 
 ## Publish App Update
 
-Use the provided script to build and publish updates:
+Copy `scripts/build-and-publish-app-release.sh` to your React Native app root and run it from there:
 
-```bash
-./build-and-publish-app-release.sh <runtimeVersion> <server-url> <uploadKey> [channel]
+```shell
+./build-and-publish-app-release.sh [channel]
 ```
+
+`channel` defaults to `development`. Valid values: `development`, `preview`, `production`.
+
+The script reads `OTA_URL` and `UPLOAD_KEY` from your app's `.env.local`, and `runtimeVersion` from `app.json` automatically.
 
 Example:
-```bash
-./build-and-publish-app-release.sh 1.0.0 http://localhost:3000 abc123def456 production
+```shell
+./build-and-publish-app-release.sh production
 ```
 
-The script will build with `expo export`, package the update, and upload it to the server.
+This script will:
+1. Export your app using `expo export`
+2. Package the update with metadata
+3. Upload it to your expo-ota-server
+
+> **Note**: Make sure the script is executable (`chmod +x build-and-publish-app-release.sh`)
 
 ## Rollbacks
 
