@@ -49,20 +49,18 @@ jobs:
         id: changelog
         run: |
           version="${GITHUB_REF#refs/tags/v}"
-          changelog=$(awk "/## \[$version\]/{flag=1;next}/## \[/{flag=0}flag" CHANGELOG.md)
-          changelog="${changelog//'%'/'%25'}"
-          changelog="${changelog//$'\n'/'%0A'}"
-          changelog="${changelog//$'\r'/'%0D'}"
-          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-          echo "$changelog" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "CHANGELOG<<EOF"
+            awk "/## \[v${version}\]/{flag=1;next}/## \[/{flag=0}flag" CHANGELOG.md
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release ${{ env.VERSION }}
+          name: ${{ github.ref_name }}
           body: ${{ env.CHANGELOG }}
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Explicitly specify the token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
