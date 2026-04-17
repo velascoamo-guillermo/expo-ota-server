@@ -7,6 +7,7 @@ import {
   Button,
   FormControl,
   FormErrorMessage,
+  FormLabel,
   Input,
   VStack,
   HStack,
@@ -68,8 +69,14 @@ export default function Home() {
           <form onSubmit={handleLogin}>
             <VStack spacing={4}>
               <FormControl isInvalid={!!error}>
+                <FormLabel htmlFor="password" srOnly>
+                  Password
+                </FormLabel>
                 <Input
+                  id="password"
                   type="password"
+                  name="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Admin password"

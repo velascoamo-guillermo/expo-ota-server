@@ -145,7 +145,9 @@ export default function ChannelPage() {
                   </Text>
                 </CardHeader>
                 <CardBody pt={0}>
-                  <Heading size="lg">{releases.length}</Heading>
+                  <Heading size="lg" fontVariantNumeric="tabular-nums">
+                    {releases.length}
+                  </Heading>
                 </CardBody>
               </Card>
               <Card variant="outline">
@@ -155,7 +157,9 @@ export default function ChannelPage() {
                   </Text>
                 </CardHeader>
                 <CardBody pt={0}>
-                  <Heading size="lg">{stats.iosDownloads}</Heading>
+                  <Heading size="lg" fontVariantNumeric="tabular-nums">
+                    {stats.iosDownloads}
+                  </Heading>
                 </CardBody>
               </Card>
               <Card variant="outline">
@@ -165,7 +169,9 @@ export default function ChannelPage() {
                   </Text>
                 </CardHeader>
                 <CardBody pt={0}>
-                  <Heading size="lg">{stats.androidDownloads}</Heading>
+                  <Heading size="lg" fontVariantNumeric="tabular-nums">
+                    {stats.androidDownloads}
+                  </Heading>
                 </CardBody>
               </Card>
             </SimpleGrid>
@@ -196,8 +202,20 @@ export default function ChannelPage() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} domain={[0, 'auto']} tickCount={5} />
-                      <RechartsTooltip contentStyle={{ fontSize: 13, backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipColor }} />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 12 }}
+                        domain={[0, 'auto']}
+                        tickCount={5}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          fontSize: 13,
+                          backgroundColor: tooltipBg,
+                          borderColor: tooltipBorder,
+                          color: tooltipColor,
+                        }}
+                      />
                       <Area
                         type="monotone"
                         dataKey="ios"
@@ -248,7 +266,7 @@ export default function ChannelPage() {
                 </Thead>
                 <Tbody>
                   {releases.map((release, index) => (
-                    <Tr key={index}>
+                    <Tr key={release.path}>
                       <Td>
                         <VStack align="start" spacing={0}>
                           <Tooltip label={release.commitMessage}>

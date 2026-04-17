@@ -20,6 +20,7 @@ import {
   AlertDialogFooter,
   Flex,
   Tooltip,
+  Skeleton,
 } from '@chakra-ui/react';
 import moment from 'moment';
 import { useEffect, useRef, useState } from 'react';
@@ -83,10 +84,11 @@ export default function ReleasesPage() {
               />
             </HStack>
 
-            {loading && <Text>Loading...</Text>}
-            {error && <Text color="red.500">{error}</Text>}
-
-            {!loading && !error && (
+            {loading ? (
+              <Skeleton height="200px" borderRadius="md" />
+            ) : error ? (
+              <Text color="red.500">{error}</Text>
+            ) : (
               <Table variant="simple">
                 <Thead>
                   <Tr>
@@ -106,7 +108,7 @@ export default function ReleasesPage() {
                       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
                     )
                     .map((release, index) => (
-                      <Tr key={index}>
+                      <Tr key={release.path}>
                         <Td>{release.path}</Td>
                         <Td>
                           <Tag
@@ -114,8 +116,8 @@ export default function ReleasesPage() {
                               release.channel === 'production'
                                 ? 'blue'
                                 : release.channel === 'staging'
-                                  ? 'purple'
-                                  : 'gray'
+                                ? 'purple'
+                                : 'gray'
                             }>
                             {release.channel ?? 'production'}
                           </Tag>

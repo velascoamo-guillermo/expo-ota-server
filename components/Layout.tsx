@@ -1,4 +1,5 @@
 import { Box, Flex, Button, HStack, Text, FlexProps, IconButton, useColorMode, useColorModeValue } from '@chakra-ui/react';
+import NextLink from 'next/link';
 import { useRouter } from 'next/router';
 import { FaSignOutAlt, FaLayerGroup } from 'react-icons/fa';
 import { FiZap, FiSun, FiMoon } from 'react-icons/fi';
@@ -33,7 +34,7 @@ export default function Layout({ children, ...props }: { children: React.ReactNo
         position="sticky"
         top={0}
         zIndex={10}>
-        <HStack spacing={2} cursor="pointer" onClick={() => router.push('/dashboard')}>
+        <HStack spacing={2} as={NextLink} href="/dashboard" _hover={{ textDecoration: 'none' }}>
           <Box color="blue.500">
             <FiZap size={20} />
           </Box>

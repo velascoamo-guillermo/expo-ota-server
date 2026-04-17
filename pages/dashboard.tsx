@@ -14,7 +14,7 @@ import {
 } from '@chakra-ui/react';
 import { FiDownload, FiPackage } from 'react-icons/fi';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import NextLink from 'next/link';
 import Layout from '../components/Layout';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { ChannelSummary, ChannelsResponse } from './api/channels';
@@ -31,7 +31,6 @@ function getChannelColor(name: string): string {
 }
 
 export default function Dashboard() {
-  const router = useRouter();
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -63,11 +62,15 @@ export default function Dashboard() {
             {channels.map((channel) => (
               <Card
                 key={channel.name}
-                cursor="pointer"
-                _hover={{ shadow: 'md', borderColor: `${getChannelColor(channel.name)}.300` }}
-                transition="all 0.15s"
-                borderWidth={1}
-                onClick={() => router.push(`/channels/${channel.name}`)}>
+                as={NextLink}
+                href={`/channels/${channel.name}`}
+                _hover={{
+                  shadow: 'md',
+                  borderColor: `${getChannelColor(channel.name)}.300`,
+                  textDecoration: 'none',
+                }}
+                transition="box-shadow 0.15s, border-color 0.15s"
+                borderWidth={1}>
                 <CardHeader pb={2}>
                   <HStack justifyContent="space-between">
                     <Tag
