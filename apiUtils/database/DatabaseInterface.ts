@@ -9,6 +9,7 @@ export interface Release {
   updateId?: string;
   size?: number;
   downloadCount?: number;
+  canaryPercentage: number;
 }
 
 export interface Tracking {
@@ -40,7 +41,15 @@ export interface DatabaseInterface {
   getReleaseTrackingMetricsForAllReleases(): Promise<TrackingMetrics[]>;
   getReleaseTrackingMetricsByChannel(channel: string): Promise<TrackingMetrics[]>;
   listChannels(): Promise<string[]>;
-  getLatestReleaseRecordForRuntimeVersionAndChannel(runtimeVersion: string, channel: string): Promise<Release | null>;
+  getLatestReleaseRecordForRuntimeVersionAndChannel(
+    runtimeVersion: string,
+    channel: string
+  ): Promise<Release | null>;
+  getLatestFullyRolledOutRelease(
+    runtimeVersion: string,
+    channel: string
+  ): Promise<Release | null>;
+  updateCanaryPercentage(releaseId: string, canaryPercentage: number): Promise<Release | null>;
   getDownloadCountsPerRelease(): Promise<Record<string, number>>;
   getMAUStats(channel?: string): Promise<MAUStat[]>;
 }
