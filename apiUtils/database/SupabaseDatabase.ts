@@ -81,6 +81,7 @@ export class SupabaseDatabase implements DatabaseInterface {
         commitHash: data.commit_hash,
         commitMessage: data.commit_message,
         updateId: data.update_id,
+        canaryPercentage: data.canary_percentage ?? 100,
       };
     }
 
@@ -96,7 +97,19 @@ export class SupabaseDatabase implements DatabaseInterface {
 
     if (error) throw new Error(error.message);
 
-    return data || null;
+    if (!data) return null;
+    return {
+      id: data.id,
+      runtimeVersion: data.runtime_version,
+      channel: data.channel,
+      path: data.path,
+      timestamp: data.timestamp,
+      commitHash: data.commit_hash,
+      commitMessage: data.commit_message,
+      updateId: data.update_id,
+      size: data.size,
+      canaryPercentage: data.canary_percentage ?? 100,
+    };
   }
 
   async getReleaseTrackingMetricsForAllReleases(): Promise<TrackingMetrics[]> {
@@ -176,12 +189,25 @@ export class SupabaseDatabase implements DatabaseInterface {
         commit_message: release.commitMessage,
         update_id: release.updateId,
         size: release.size ?? null,
+        canary_percentage: release.canaryPercentage ?? 100,
       })
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    if (!data) throw new Error('No data returned from createRelease');
+    return {
+      id: data.id,
+      runtimeVersion: data.runtime_version,
+      channel: data.channel,
+      path: data.path,
+      timestamp: data.timestamp,
+      commitHash: data.commit_hash,
+      commitMessage: data.commit_message,
+      updateId: data.update_id,
+      size: data.size,
+      canaryPercentage: data.canary_percentage ?? 100,
+    };
   }
 
   async getRelease(id: string): Promise<Release | null> {
@@ -201,6 +227,9 @@ export class SupabaseDatabase implements DatabaseInterface {
       timestamp: data.timestamp,
       commitHash: data.commit_hash,
       commitMessage: data.commit_message,
+      updateId: data.update_id,
+      size: data.size,
+      canaryPercentage: data.canary_percentage ?? 100,
     };
   }
 
@@ -220,6 +249,7 @@ export class SupabaseDatabase implements DatabaseInterface {
       size: release.size,
       commitHash: release.commit_hash,
       commitMessage: release.commit_message,
+      canaryPercentage: release.canary_percentage ?? 100,
     }));
   }
 
@@ -234,6 +264,60 @@ export class SupabaseDatabase implements DatabaseInterface {
       acc[row.release_id] = (acc[row.release_id] ?? 0) + 1;
       return acc;
     }, {});
+  }
+
+  async getLatestFullyRolledOutRelease(
+    runtimeVersion: string,
+    channel: string
+  ): Promise<Release | null> {
+    const { data, error } = await this.supabase
+      .from(Tables.RELEASES)
+      .select()
+      .eq('runtime_version', runtimeVersion)
+      .eq('channel', channel)
+      .eq('canary_percentage', 100)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) return null;
+    if (!data) return null;
+    return {
+      id: data.id,
+      runtimeVersion: data.runtime_version,
+      channel: data.channel,
+      path: data.path,
+      timestamp: data.timestamp,
+      commitHash: data.commit_hash,
+      commitMessage: data.commit_message,
+      updateId: data.update_id,
+      size: data.size,
+      canaryPercentage: data.canary_percentage ?? 100,
+    };
+  }
+
+  async updateCanaryPercentage(releaseId: string, canaryPercentage: number): Promise<Release | null> {
+    const { data, error } = await this.supabase
+      .from(Tables.RELEASES)
+      .update({ canary_percentage: canaryPercentage })
+      .eq('id', releaseId)
+      .select()
+      .single();
+
+    if (error) return null;
+    if (!data) return null;
+    return {
+      id: data.id,
+      runtimeVersion: data.runtime_version,
+      channel: data.channel,
+      path: data.path,
+      timestamp: data.timestamp,
+      commitHash: data.commit_hash,
+      commitMessage: data.commit_message,
+      updateId: data.update_id,
+      size: data.size,
+      canaryPercentage: data.canary_percentage ?? 100,
+    };
   }
 
   async getMAUStats(channel?: string): Promise<MAUStat[]> {
