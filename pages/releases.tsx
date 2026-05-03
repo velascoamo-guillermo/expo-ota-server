@@ -21,6 +21,7 @@ import {
   Flex,
   Tooltip,
   Skeleton,
+  Input,
 } from '@chakra-ui/react';
 import moment from 'moment';
 import { useEffect, useRef, useState } from 'react';
@@ -31,6 +32,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import { showToast } from '../components/toast';
 
 interface Release {
+  id: string;
   path: string;
   runtimeVersion: string;
   channel: string;
@@ -38,6 +40,7 @@ interface Release {
   size: number;
   commitHash: string | null;
   commitMessage: string | null;
+  canaryPercentage: number;
 }
 
 export default function ReleasesPage() {
@@ -47,10 +50,37 @@ export default function ReleasesPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const [editingReleaseId, setEditingReleaseId] = useState<string | null>(null);
+  const [editingPercentage, setEditingPercentage] = useState<string>('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReleases();
   }, []);
+
+  const saveCanaryPercentage = async (releaseId: string) => {
+    const pct = parseInt(editingPercentage, 10);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      showToast('Percentage must be 0–100', 'error');
+      return;
+    }
+    setSavingId(releaseId);
+    try {
+      const response = await fetch(`/api/releases/${releaseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canaryPercentage: pct }),
+      });
+      if (!response.ok) throw new Error('Failed to update');
+      await fetchReleases();
+      setEditingReleaseId(null);
+      showToast('Rollout updated', 'success');
+    } catch {
+      showToast('Failed to update rollout', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const fetchReleases = async () => {
     try {
@@ -99,6 +129,8 @@ export default function ReleasesPage() {
                     <Th>Commit Message</Th>
                     <Th>Timestamp (UTC)</Th>
                     <Th>File Size</Th>
+                    <Th>Rollout</Th>
+                    <Th>Edit Rollout</Th>
                     <Th>Actions</Th>
                   </Tr>
                 </Thead>
@@ -141,6 +173,52 @@ export default function ReleasesPage() {
                           {moment(release.timestamp).utc().format('MMM, Do  HH:mm')}
                         </Td>
                         <Td>{formatFileSize(release.size)}</Td>
+                        <Td>
+                          <Tag
+                            colorScheme={release.canaryPercentage < 100 ? 'orange' : 'green'}
+                            borderRadius="full"
+                            size="sm"
+                          >
+                            {release.canaryPercentage < 100 ? `🐤 ${release.canaryPercentage}%` : `✓ 100%`}
+                          </Tag>
+                        </Td>
+                        <Td>
+                          {editingReleaseId === release.id ? (
+                            <HStack spacing={1}>
+                              <Input
+                                size="xs"
+                                w="60px"
+                                value={editingPercentage}
+                                onChange={(e) => setEditingPercentage(e.target.value)}
+                                type="number"
+                                min={0}
+                                max={100}
+                              />
+                              <Button
+                                size="xs"
+                                colorScheme="blue"
+                                isLoading={savingId === release.id}
+                                onClick={() => saveCanaryPercentage(release.id)}
+                              >
+                                Save
+                              </Button>
+                              <Button size="xs" variant="ghost" onClick={() => setEditingReleaseId(null)}>
+                                Cancel
+                              </Button>
+                            </HStack>
+                          ) : (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingReleaseId(release.id);
+                                setEditingPercentage(String(release.canaryPercentage));
+                              }}
+                            >
+                              Edit %
+                            </Button>
+                          )}
+                        </Td>
                         <Td justifyItems="center">
                           {index === 0 ? (
                             <Tag size="lg" colorScheme="green">
