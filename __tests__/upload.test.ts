@@ -92,6 +92,7 @@ describe('Upload API', () => {
       commitMessage: 'Test commit message',
       updateId: mockUpdateId,
       size: expect.any(Number),
+      canaryPercentage: 100,
     });
     expect(ZipHelper.getFileFromZip).toHaveBeenCalledWith(mockZipFolder, 'metadata.json');
     expect(HashHelper.createHash).toHaveBeenCalledWith(mockMetadataContent, 'sha256', 'hex');

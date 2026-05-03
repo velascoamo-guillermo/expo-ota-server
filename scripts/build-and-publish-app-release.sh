@@ -5,9 +5,11 @@ set -euo pipefail
 # build-and-publish-app-release.sh — Publica una release OTA a expo-ota-server
 #
 # Uso:
-#   ./scripts/build-and-publish-app-release.sh [channel]
+#   ./scripts/build-and-publish-app-release.sh [channel] [canary-percentage]
 #
-# Channels disponibles: development (default) | preview | production
+# Examples:
+#   ./scripts/build-and-publish-app-release.sh production 10   # 10% canary
+#   ./scripts/build-and-publish-app-release.sh production      # 100% full rollout
 #
 # Variables de entorno requeridas (o en .env.local):
 #   OTA_URL     URL base del servidor  (ej: http://192.168.1.177:3000)
@@ -15,6 +17,14 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 CHANNEL="${1:-development}"
+CANARY_PERCENTAGE="${2:-100}"
+
+# Validate canary percentage
+if ! [[ "$CANARY_PERCENTAGE" =~ ^[0-9]+$ ]] || [ "$CANARY_PERCENTAGE" -lt 0 ] || [ "$CANARY_PERCENTAGE" -gt 100 ]; then
+  echo "ERROR: canary percentage must be 0-100, got '$CANARY_PERCENTAGE'"
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -53,6 +63,7 @@ echo "  Channel:         $CHANNEL"
 echo "  Runtime version: $RUNTIME_VERSION"
 echo "  Commit:          ${COMMIT_HASH:0:8} — $COMMIT_MESSAGE"
 echo "  Servidor:        $OTA_URL"
+echo "  Canary:          $CANARY_PERCENTAGE%"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 read -r -p "¿Continuar? (s/N) " CONFIRM
@@ -92,7 +103,8 @@ HTTP_CODE=$(curl -s -o "$HTTP_BODY_FILE" -w "%{http_code}" \
   -F "runtimeVersion=$RUNTIME_VERSION" \
   -F "commitHash=$COMMIT_HASH" \
   -F "commitMessage=$COMMIT_MESSAGE" \
-  -F "channel=$CHANNEL"
+  -F "channel=$CHANNEL" \
+  -F "canaryPercentage=$CANARY_PERCENTAGE"
 )
 HTTP_BODY=$(cat "$HTTP_BODY_FILE")
 rm -f "$HTTP_BODY_FILE"

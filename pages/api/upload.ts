@@ -32,6 +32,11 @@ export default async function uploadHandler(req: NextApiRequest, res: NextApiRes
     const commitHash = fields.commitHash?.[0];
     const commitMessage = fields.commitMessage?.[0] || 'No message provided';
     const channel = fields.channel?.[0] || 'production';
+    const canaryPercentage = parseInt(fields.canaryPercentage?.[0] ?? '100', 10);
+    if (isNaN(canaryPercentage) || canaryPercentage < 0 || canaryPercentage > 100) {
+      res.status(400).json({ error: 'canaryPercentage must be an integer between 0 and 100' });
+      return;
+    }
 
     if (!uploadKey || !file || !runtimeVersion || !commitHash) {
       res.status(400).json({ error: 'Missing upload key, file, runtime version or commit hash' });
@@ -66,6 +71,7 @@ export default async function uploadHandler(req: NextApiRequest, res: NextApiRes
       commitMessage,
       updateId,
       size: zipContent.length,
+      canaryPercentage,
     });
 
     res.status(200).json({ success: true, path });
