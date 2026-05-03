@@ -36,20 +36,43 @@ export class PostgresDatabase implements DatabaseInterface {
     }));
   }
 
-  async getLatestReleaseRecordForRuntimeVersionAndChannel(runtimeVersion: string, channel: string): Promise<Release | null> {
+  async getLatestReleaseRecordForRuntimeVersionAndChannel(
+    runtimeVersion: string,
+    channel: string
+  ): Promise<Release | null> {
     const query = `
-      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp, commit_hash as "commitHash", update_id as "updateId"
+      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp,
+             commit_hash as "commitHash", commit_message as "commitMessage",
+             update_id as "updateId", size, canary_percentage as "canaryPercentage"
       FROM ${Tables.RELEASES} WHERE runtime_version = $1 AND channel = $2
       ORDER BY timestamp DESC
       LIMIT 1
     `;
+    const { rows } = await this.pool.query(query, [runtimeVersion, channel]);
+    return rows[0] || null;
+  }
 
+  async getLatestFullyRolledOutRelease(
+    runtimeVersion: string,
+    channel: string
+  ): Promise<Release | null> {
+    const query = `
+      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp,
+             commit_hash as "commitHash", commit_message as "commitMessage",
+             update_id as "updateId", size, canary_percentage as "canaryPercentage"
+      FROM ${Tables.RELEASES}
+      WHERE runtime_version = $1 AND channel = $2 AND canary_percentage = 100
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `;
     const { rows } = await this.pool.query(query, [runtimeVersion, channel]);
     return rows[0] || null;
   }
   async getReleaseByPath(path: string): Promise<Release | null> {
     const query = `
-      SELECT id, runtime_version as "runtimeVersion", path, timestamp, commit_hash as "commitHash"
+      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp,
+             commit_hash as "commitHash", commit_message as "commitMessage",
+             update_id as "updateId", size, canary_percentage as "canaryPercentage"
       FROM ${Tables.RELEASES} WHERE path = $1
     `;
     const { rows } = await this.pool.query(query, [path]);
@@ -96,11 +119,13 @@ export class PostgresDatabase implements DatabaseInterface {
 
   async createRelease(release: Omit<Release, 'id'>): Promise<Release> {
     const query = `
-      INSERT INTO ${Tables.RELEASES} (runtime_version, channel, path, timestamp, commit_hash, commit_message, update_id, size)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, runtime_version as "runtimeVersion", channel, path, timestamp, commit_hash as "commitHash", update_id as "updateId", size
+      INSERT INTO ${Tables.RELEASES}
+        (runtime_version, channel, path, timestamp, commit_hash, commit_message, update_id, size, canary_percentage)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, runtime_version as "runtimeVersion", channel, path, timestamp,
+                commit_hash as "commitHash", commit_message as "commitMessage",
+                update_id as "updateId", size, canary_percentage as "canaryPercentage"
     `;
-
     const values = [
       release.runtimeVersion,
       release.channel,
@@ -110,6 +135,7 @@ export class PostgresDatabase implements DatabaseInterface {
       release.commitMessage,
       release.updateId,
       release.size ?? null,
+      release.canaryPercentage ?? 100,
     ];
     const { rows } = await this.pool.query(query, values);
     return rows[0];
@@ -117,23 +143,38 @@ export class PostgresDatabase implements DatabaseInterface {
 
   async getRelease(id: string): Promise<Release | null> {
     const query = `
-      SELECT id, runtime_version as "runtimeVersion", path, timestamp, commit_hash as "commitHash"
+      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp,
+             commit_hash as "commitHash", commit_message as "commitMessage",
+             update_id as "updateId", size, canary_percentage as "canaryPercentage"
       FROM ${Tables.RELEASES} WHERE id = $1
     `;
-
     const { rows } = await this.pool.query(query, [id]);
     return rows[0] || null;
   }
 
   async listReleases(): Promise<Release[]> {
     const query = `
-      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp, commit_hash as "commitHash", commit_message as "commitMessage", size
+      SELECT id, runtime_version as "runtimeVersion", channel, path, timestamp,
+             commit_hash as "commitHash", commit_message as "commitMessage",
+             update_id as "updateId", size, canary_percentage as "canaryPercentage"
       FROM ${Tables.RELEASES}
       ORDER BY timestamp DESC
     `;
-
     const { rows } = await this.pool.query(query);
     return rows;
+  }
+
+  async updateCanaryPercentage(releaseId: string, canaryPercentage: number): Promise<Release | null> {
+    const query = `
+      UPDATE ${Tables.RELEASES}
+      SET canary_percentage = $1
+      WHERE id = $2
+      RETURNING id, runtime_version as "runtimeVersion", channel, path, timestamp,
+                commit_hash as "commitHash", commit_message as "commitMessage",
+                update_id as "updateId", size, canary_percentage as "canaryPercentage"
+    `;
+    const { rows } = await this.pool.query(query, [canaryPercentage, releaseId]);
+    return rows[0] || null;
   }
 
   async getDownloadCountsPerRelease(): Promise<Record<string, number>> {
