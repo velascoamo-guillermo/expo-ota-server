@@ -10,6 +10,8 @@ import { UpdateHelper, NoUpdateAvailableError } from '../../apiUtils/helpers/Upd
 import { ZipHelper } from '../../apiUtils/helpers/ZipHelper';
 import { getLogger } from '../../apiUtils/logger';
 import { DatabaseFactory } from '../../apiUtils/database/DatabaseFactory';
+import { CohortHelper } from '../../apiUtils/helpers/CohortHelper';
+import { Release } from '../../apiUtils/database/DatabaseInterface';
 import moment from 'moment';
 
 const logger = getLogger('manifest');
@@ -63,77 +65,60 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
   const channel =
     (Array.isArray(channelMaybeArray) ? channelMaybeArray[0] : channelMaybeArray) ?? 'production';
 
-  const database = DatabaseFactory.getDatabase();
-  const releaseRecord = await database.getLatestReleaseRecordForRuntimeVersionAndChannel(
+  const deviceIdHeader = req.headers['eas-client-id'];
+  const deviceId = Array.isArray(deviceIdHeader) ? deviceIdHeader[0] : deviceIdHeader;
+
+  const release = await CohortHelper.resolveRelease({
     runtimeVersion,
-    channel
-  );
+    channel,
+    deviceId: deviceId ?? null,
+  });
 
-  if (releaseRecord) {
-    const updateId = releaseRecord.updateId;
-
-    const currentUpdateId = req.headers['expo-current-update-id'];
-    if (currentUpdateId === updateId) {
-      logger.info('User is already running the latest release. Returning NoUpdateAvailable.', {
-        runtimeVersion,
-        channel,
-      });
-      await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
-      return;
-    }
-  }
-
-  let updateBundlePath: string;
-  try {
-    updateBundlePath = await UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync(
-      runtimeVersion,
-      channel
-    );
-  } catch (error: any) {
-    if (error instanceof NoUpdateAvailableError) {
-      logger.info('No update available for runtime version', { runtimeVersion });
-      await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
-      return;
-    }
-
-    res.statusCode = 404;
-    res.json({
-      error: error.message,
-    });
+  if (!release) {
+    logger.info('No update available (canary withheld or no release)', { runtimeVersion, channel });
+    await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
     return;
   }
 
+  const currentUpdateId = req.headers['expo-current-update-id'];
+  if (currentUpdateId === release.updateId) {
+    logger.info('User is already running the latest release. Returning NoUpdateAvailable.', {
+      runtimeVersion,
+      channel,
+    });
+    await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
+    return;
+  }
+
+  const updateBundlePath = release.path.replace('.zip', '');
   const updateType = await getTypeOfUpdateAsync(updateBundlePath);
 
   try {
-    try {
-      if (updateType === UpdateType.NORMAL_UPDATE) {
-        logger.info('Found a normal update available.');
-        await putUpdateInResponseAsync(
-          req,
-          res,
-          updateBundlePath,
-          runtimeVersion,
-          platform,
-          protocolVersion,
-          channel
-        );
-      } else if (updateType === UpdateType.ROLLBACK) {
-        logger.info('Rollback is available.');
-        await putRollBackInResponseAsync(req, res, updateBundlePath, protocolVersion);
-      }
-    } catch (maybeNoUpdateAvailableError) {
-      if (maybeNoUpdateAvailableError instanceof NoUpdateAvailableError) {
-        logger.info('psych!! User already running latest available update');
-        await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
-        return;
-      }
-      throw maybeNoUpdateAvailableError;
+    if (updateType === UpdateType.NORMAL_UPDATE) {
+      logger.info('Found a normal update available.');
+      await putUpdateInResponseAsync(
+        req,
+        res,
+        updateBundlePath,
+        runtimeVersion,
+        platform,
+        protocolVersion,
+        channel,
+        release
+      );
+    } else if (updateType === UpdateType.ROLLBACK) {
+      logger.info('Rollback is available.');
+      await putRollBackInResponseAsync(req, res, updateBundlePath, protocolVersion);
     }
-  } catch (error) {
-    logger.error(error);
+  } catch (maybeNoUpdateAvailableError) {
+    if (maybeNoUpdateAvailableError instanceof NoUpdateAvailableError) {
+      logger.info('psych!! User already running latest available update');
+      await putNoUpdateAvailableInResponseAsync(req, res, protocolVersion);
+      return;
+    }
+    logger.error(maybeNoUpdateAvailableError);
     res.statusCode = 404;
-    res.json({ error });
+    res.json({ error: maybeNoUpdateAvailableError });
   }
 }
 
@@ -155,7 +140,8 @@ async function putUpdateInResponseAsync(
   runtimeVersion: string,
   platform: string,
   protocolVersion: number,
-  channel: string
+  channel: string,
+  resolvedRelease?: Release
 ): Promise<void> {
   const currentUpdateId = req.headers['expo-current-update-id'];
   const { metadataJson, createdAt, id } = await UpdateHelper.getMetadataAsync({
@@ -254,16 +240,15 @@ async function putUpdateInResponseAsync(
   res.write(form.getBuffer());
   res.end();
 
-  const database = DatabaseFactory.getDatabase();
-  const release = await database.getReleaseByPath(updateBundlePath + '.zip');
+  const trackingRelease = resolvedRelease ?? await DatabaseFactory.getDatabase().getReleaseByPath(updateBundlePath + '.zip');
 
-  if (release) {
+  if (trackingRelease) {
     const deviceIdHeader = req.headers['eas-client-id'];
     const deviceId = Array.isArray(deviceIdHeader) ? deviceIdHeader[0] : deviceIdHeader;
-    logger.info(`Tracking download for release.`, { releaseId: release.id, deviceId });
-    await database.createTracking({
+    logger.info(`Tracking download for release.`, { releaseId: trackingRelease.id, deviceId });
+    await DatabaseFactory.getDatabase().createTracking({
       platform,
-      releaseId: release.id,
+      releaseId: trackingRelease.id,
       downloadTimestamp: moment().utc().toISOString(),
       deviceId,
     });

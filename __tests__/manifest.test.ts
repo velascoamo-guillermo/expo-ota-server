@@ -9,12 +9,14 @@ import { HashHelper } from '../apiUtils/helpers/HashHelper';
 import manifestEndpoint from '../pages/api/manifest';
 import { DatabaseFactory } from '../apiUtils/database/DatabaseFactory';
 import { DatabaseInterface, Release } from '../apiUtils/database/DatabaseInterface';
+import { CohortHelper } from '../apiUtils/helpers/CohortHelper';
 
 jest.mock('../apiUtils/helpers/UpdateHelper');
 jest.mock('../apiUtils/helpers/ZipHelper');
 jest.mock('../apiUtils/helpers/ConfigHelper');
 jest.mock('../apiUtils/helpers/HashHelper');
 jest.mock('../apiUtils/database/DatabaseFactory');
+jest.mock('../apiUtils/helpers/CohortHelper');
 jest.mock('form-data');
 
 describe('Manifest API', () => {
@@ -55,7 +57,7 @@ describe('Manifest API', () => {
   });
 
   it('should return NoUpdateAvailable when user is already running the latest release', async () => {
-    // Mock database to return a release with matching updateId
+    // Mock CohortHelper to return a release with matching updateId
     const mockRelease: Release = {
       id: 'release-id',
       runtimeVersion: '1.0.0',
@@ -65,13 +67,10 @@ describe('Manifest API', () => {
       commitHash: 'abc123',
       commitMessage: 'Test commit',
       updateId: 'test-update-id',
+      canaryPercentage: 100,
     };
 
-    const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(mockRelease),
-    } as unknown as DatabaseInterface;
-
-    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(mockRelease);
 
     // Mock NoUpdateAvailable directive
     const mockNoUpdateDirective = { type: 'noUpdateAvailable' };
@@ -109,7 +108,7 @@ describe('Manifest API', () => {
   });
 
   it('should handle normal update successfully', async () => {
-    // Mock database to return a release with different updateId
+    // Mock CohortHelper to return a release with different updateId
     const mockRelease: Release = {
       id: 'release-id',
       runtimeVersion: '1.0.0',
@@ -119,11 +118,12 @@ describe('Manifest API', () => {
       commitMessage: 'Test commit',
       channel: 'production',
       updateId: 'different-update-id',
+      canaryPercentage: 100,
     };
 
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(mockRelease);
+
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(mockRelease),
-      getReleaseByPath: jest.fn().mockResolvedValue(mockRelease),
       createTracking: jest.fn().mockResolvedValue(undefined),
     } as unknown as DatabaseInterface;
 
@@ -198,17 +198,22 @@ describe('Manifest API', () => {
   });
 
   it('should handle rollback update successfully', async () => {
-    // Mock database
-    const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
-    } as unknown as DatabaseInterface;
+    // Mock CohortHelper to return a release
+    const mockRelease: Release = {
+      id: 'release-id',
+      runtimeVersion: '1.0.0',
+      path: 'path/to/update.zip',
+      timestamp: '2024-03-20T00:00:00Z',
+      commitHash: 'abc123',
+      commitMessage: 'Test commit',
+      channel: 'production',
+      updateId: 'different-update-id',
+      canaryPercentage: 100,
+    };
 
-    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(mockRelease);
 
     // Mock UpdateHelper methods
-    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockResolvedValue(
-      'path/to/update'
-    );
     (UpdateHelper.createRollBackDirectiveAsync as jest.Mock).mockResolvedValue({
       type: 'rollBackToEmbedded',
       parameters: {
@@ -253,17 +258,20 @@ describe('Manifest API', () => {
   });
 
   it('should return NoUpdateAvailable when current update matches latest', async () => {
-    // Mock database
-    const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
-    } as unknown as DatabaseInterface;
+    // Mock CohortHelper to return a release
+    const mockRelease: Release = {
+      id: 'release-id',
+      runtimeVersion: '1.0.0',
+      path: 'path/to/update.zip',
+      timestamp: '2024-03-20T00:00:00Z',
+      commitHash: 'abc123',
+      commitMessage: 'Test commit',
+      channel: 'production',
+      updateId: 'different-update-id',
+      canaryPercentage: 100,
+    };
 
-    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
-
-    // Mock UpdateHelper methods
-    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockResolvedValue(
-      'path/to/update'
-    );
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(mockRelease);
 
     const mockMetadata = {
       metadataJson: { fileMetadata: { ios: {} } },
@@ -312,14 +320,7 @@ describe('Manifest API', () => {
   });
 
   it('should use expo-channel-name header for channel-specific lookup', async () => {
-    const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
-    } as unknown as DatabaseInterface;
-
-    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
-    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockRejectedValue(
-      new NoUpdateAvailableError()
-    );
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(null);
     (UpdateHelper.createNoUpdateAvailableDirectiveAsync as jest.Mock).mockResolvedValue({
       type: 'noUpdateAvailable',
     });
@@ -343,13 +344,8 @@ describe('Manifest API', () => {
 
     await manifestEndpoint(req, res);
 
-    expect(mockDatabase.getLatestReleaseRecordForRuntimeVersionAndChannel).toHaveBeenCalledWith(
-      '1.0.0',
-      'staging'
-    );
-    expect(UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync).toHaveBeenCalledWith(
-      '1.0.0',
-      'staging'
+    expect(CohortHelper.resolveRelease).toHaveBeenCalledWith(
+      expect.objectContaining({ runtimeVersion: '1.0.0', channel: 'staging' })
     );
   });
 
@@ -363,11 +359,12 @@ describe('Manifest API', () => {
       commitMessage: 'Test commit',
       channel: 'production',
       updateId: 'different-update-id',
+      canaryPercentage: 100,
     };
 
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(mockRelease);
+
     const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(mockRelease),
-      getReleaseByPath: jest.fn().mockResolvedValue(mockRelease),
       createTracking: jest.fn().mockResolvedValue(undefined),
     } as unknown as DatabaseInterface;
 
@@ -382,9 +379,6 @@ describe('Manifest API', () => {
     };
 
     (HashHelper.convertSHA256HashToUUID as jest.Mock).mockReturnValue('some-uuid');
-    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockResolvedValue(
-      'path/to/update'
-    );
     (UpdateHelper.getMetadataAsync as jest.Mock).mockResolvedValue(mockMetadata);
     (UpdateHelper.getAssetMetadataAsync as jest.Mock).mockResolvedValue({
       hash: 'hash', key: 'key', fileExtension: '.js', contentType: 'application/javascript', url: 'url',
@@ -420,17 +414,8 @@ describe('Manifest API', () => {
   });
 
   it('should handle NoUpdateAvailable error from UpdateHelper', async () => {
-    // Mock database
-    const mockDatabase = {
-      getLatestReleaseRecordForRuntimeVersionAndChannel: jest.fn().mockResolvedValue(null),
-    } as unknown as DatabaseInterface;
-
-    (DatabaseFactory.getDatabase as jest.Mock).mockReturnValue(mockDatabase);
-
-    // Mock UpdateHelper to throw NoUpdateAvailableError
-    (UpdateHelper.getLatestUpdateBundlePathForRuntimeVersionAsync as jest.Mock).mockRejectedValue(
-      new NoUpdateAvailableError()
-    );
+    // Mock CohortHelper to return null (no release available)
+    (CohortHelper.resolveRelease as jest.Mock).mockResolvedValue(null);
 
     // Mock NoUpdateAvailable directive
     const mockNoUpdateDirective = { type: 'noUpdateAvailable' };
