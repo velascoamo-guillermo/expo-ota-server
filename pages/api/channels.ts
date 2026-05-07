@@ -49,7 +49,8 @@ export default async function channelsHandler(req: NextApiRequest, res: NextApiR
     );
 
     res.status(200).json({ channels });
-  } catch {
+  } catch (err) {
+    console.error('[channels]', err);
     res.status(500).json({ error: 'Failed to fetch channels' });
   }
 }

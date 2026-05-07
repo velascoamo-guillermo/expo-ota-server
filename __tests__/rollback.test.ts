@@ -1,8 +1,15 @@
 import { createMocks } from 'node-mocks-http';
+import AdmZip from 'adm-zip';
 
 import { DatabaseFactory } from '../apiUtils/database/DatabaseFactory';
 import { StorageFactory } from '../apiUtils/storage/StorageFactory';
 import rollbackHandler from '../pages/api/rollback';
+
+function makeFakeZip(): Buffer {
+  const zip = new AdmZip();
+  zip.addFile('metadata.json', Buffer.from(JSON.stringify({ version: 0, bundler: 'metro', fileMetadata: {} }), 'utf-8'));
+  return zip.toBuffer();
+}
 
 jest.mock('../apiUtils/database/DatabaseFactory');
 jest.mock('../apiUtils/storage/StorageFactory');
@@ -30,8 +37,11 @@ describe('Rollback API', () => {
   });
 
   it('should handle rollback successfully', async () => {
+    const fakeZip = makeFakeZip();
     const mockStorage = {
       copyFile: jest.fn().mockResolvedValue(true),
+      downloadFile: jest.fn().mockResolvedValue(fakeZip),
+      uploadFile: jest.fn().mockResolvedValue('updates/production/1.0.0/new.zip'),
     };
 
     const mockDatabase = {
