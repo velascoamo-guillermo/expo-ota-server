@@ -112,11 +112,11 @@ export default function Dashboard() {
                     </Box>
 
                     <HStack spacing={4}>
-                      <HStack spacing={1} color="gray.600">
+                      <HStack spacing={1}>
                         <FiDownload size={14} />
                         <Text fontSize="sm">{channel.totalDownloads} downloads</Text>
                       </HStack>
-                      <HStack spacing={1} color="gray.600">
+                      <HStack spacing={1}>
                         <FiPackage size={14} />
                         <Text fontSize="sm">v{channel.activeRelease?.runtimeVersion ?? '—'}</Text>
                       </HStack>
