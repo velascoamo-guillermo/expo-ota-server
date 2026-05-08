@@ -6,6 +6,7 @@ import {
   CardHeader,
   Heading,
   HStack,
+  Input,
   SimpleGrid,
   Table,
   Tag,
@@ -75,6 +76,30 @@ export default function ChannelPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const [editingReleaseId, setEditingReleaseId] = useState<string | null>(null);
+  const [editingPercentage, setEditingPercentage] = useState<string>('');
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const saveCanaryPercentage = async (releaseId: string) => {
+    const pct = parseInt(editingPercentage, 10);
+    if (isNaN(pct) || pct < 0 || pct > 100) return;
+    setSavingId(releaseId);
+    try {
+      const res = await fetch(`/api/releases/${releaseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canaryPercentage: pct }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      showToast('Rollout updated', 'success');
+      setEditingReleaseId(null);
+      fetchData();
+    } catch {
+      showToast('Failed to update rollout', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const gridStroke = useColorModeValue('#E2E8F0', '#2D3748');
   const tooltipBg = useColorModeValue('#fff', '#1A202C');
@@ -261,6 +286,8 @@ export default function ChannelPage() {
                     <Th>Timestamp (UTC)</Th>
                     <Th>Size</Th>
                     <Th>Downloads</Th>
+                    <Th>Rollout</Th>
+                    <Th>Edit Rollout</Th>
                     <Th>Actions</Th>
                   </Tr>
                 </Thead>
@@ -287,6 +314,52 @@ export default function ChannelPage() {
                       <Td>{moment(release.timestamp).utc().format('MMM Do, HH:mm')}</Td>
                       <Td>{formatFileSize(release.size ?? 0)}</Td>
                       <Td>{release.downloadCount ?? 0}</Td>
+                      <Td>
+                        <Tag
+                          colorScheme={release.canaryPercentage < 100 ? 'orange' : 'green'}
+                          borderRadius="full"
+                          size="sm"
+                        >
+                          {release.canaryPercentage < 100 ? `🐤 ${release.canaryPercentage}%` : `✓ 100%`}
+                        </Tag>
+                      </Td>
+                      <Td>
+                        {editingReleaseId === release.id ? (
+                          <HStack spacing={1}>
+                            <Input
+                              size="xs"
+                              w="60px"
+                              value={editingPercentage}
+                              onChange={(e) => setEditingPercentage(e.target.value)}
+                              type="number"
+                              min={0}
+                              max={100}
+                            />
+                            <Button
+                              size="xs"
+                              colorScheme="blue"
+                              isLoading={savingId === release.id}
+                              onClick={() => saveCanaryPercentage(release.id)}
+                            >
+                              Save
+                            </Button>
+                            <Button size="xs" variant="ghost" onClick={() => setEditingReleaseId(null)}>
+                              Cancel
+                            </Button>
+                          </HStack>
+                        ) : (
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingReleaseId(release.id);
+                              setEditingPercentage(String(release.canaryPercentage));
+                            }}
+                          >
+                            Edit %
+                          </Button>
+                        )}
+                      </Td>
                       <Td>
                         {index === 0 ? (
                           <Tag colorScheme={getChannelColor(channel)} size="md">
