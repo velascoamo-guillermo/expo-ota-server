@@ -67,6 +67,7 @@ export default async function rollbackHandler(req: NextApiRequest, res: NextApiR
       commitMessage,
       updateId,
       size,
+      canaryPercentage: 100,
     });
 
     res.status(200).json({ success: true, newPath });

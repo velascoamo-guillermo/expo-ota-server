@@ -170,7 +170,7 @@ export default function ChannelPage() {
                   </Text>
                 </CardHeader>
                 <CardBody pt={0}>
-                  <Heading size="lg" fontVariantNumeric="tabular-nums">
+                  <Heading size="lg">
                     {releases.length}
                   </Heading>
                 </CardBody>
@@ -182,7 +182,7 @@ export default function ChannelPage() {
                   </Text>
                 </CardHeader>
                 <CardBody pt={0}>
-                  <Heading size="lg" fontVariantNumeric="tabular-nums">
+                  <Heading size="lg">
                     {stats.iosDownloads}
                   </Heading>
                 </CardBody>
@@ -194,7 +194,7 @@ export default function ChannelPage() {
                   </Text>
                 </CardHeader>
                 <CardBody pt={0}>
-                  <Heading size="lg" fontVariantNumeric="tabular-nums">
+                  <Heading size="lg">
                     {stats.androidDownloads}
                   </Heading>
                 </CardBody>
@@ -316,11 +316,11 @@ export default function ChannelPage() {
                       <Td>{release.downloadCount ?? 0}</Td>
                       <Td>
                         <Tag
-                          colorScheme={release.canaryPercentage < 100 ? 'orange' : 'green'}
+                          colorScheme={(release.canaryPercentage ?? 100) < 100 ? 'orange' : 'green'}
                           borderRadius="full"
                           size="sm"
                         >
-                          {release.canaryPercentage < 100 ? `🐤 ${release.canaryPercentage}%` : `✓ 100%`}
+                          {(release.canaryPercentage ?? 100) < 100 ? `🐤 ${release.canaryPercentage}%` : `✓ 100%`}
                         </Tag>
                       </Td>
                       <Td>
@@ -353,7 +353,7 @@ export default function ChannelPage() {
                             variant="ghost"
                             onClick={() => {
                               setEditingReleaseId(release.id);
-                              setEditingPercentage(String(release.canaryPercentage));
+                              setEditingPercentage(String(release.canaryPercentage ?? 100));
                             }}
                           >
                             Edit %

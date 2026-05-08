@@ -175,11 +175,11 @@ export default function ReleasesPage() {
                         <Td>{formatFileSize(release.size)}</Td>
                         <Td>
                           <Tag
-                            colorScheme={release.canaryPercentage < 100 ? 'orange' : 'green'}
+                            colorScheme={(release.canaryPercentage ?? 100) < 100 ? 'orange' : 'green'}
                             borderRadius="full"
                             size="sm"
                           >
-                            {release.canaryPercentage < 100 ? `🐤 ${release.canaryPercentage}%` : `✓ 100%`}
+                            {(release.canaryPercentage ?? 100) < 100 ? `🐤 ${release.canaryPercentage}%` : `✓ 100%`}
                           </Tag>
                         </Td>
                         <Td>
@@ -212,7 +212,7 @@ export default function ReleasesPage() {
                               variant="ghost"
                               onClick={() => {
                                 setEditingReleaseId(release.id);
-                                setEditingPercentage(String(release.canaryPercentage));
+                                setEditingPercentage(String(release.canaryPercentage ?? 100));
                               }}
                             >
                               Edit %
