@@ -28,18 +28,6 @@ jobs:
           release_branches: main
           tag_prefix: v
 
-      - name: Update package.json version
-        if: steps.tag.outputs.new_tag != ''
-        env:
-          NEW_VERSION: ${{ steps.tag.outputs.new_version }}
-        run: |
-          npm version $NEW_VERSION --no-git-tag-version
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git commit -m "chore: bump version to v${NEW_VERSION} [skip ci]"
-          git push
-
       - name: Set up QEMU
         if: steps.tag.outputs.new_tag != ''
         uses: docker/setup-qemu-action@v3
