@@ -168,7 +168,7 @@ Rollbacks use a rollback-forward mechanism. Clicking "Rollback to this release" 
 
 ## Admin Dashboard
 
-<video src="public/demo.mp4" autoplay loop muted playsinline width="100%"></video>
+<video src="https://github.com/user-attachments/assets/6a799ebf-d056-4d95-8289-39915441bf11" autoplay loop muted playsinline width="100%"></video>
 
 The dashboard shows a list of channels. Each channel has:
 - Release history with commit hash, message, timestamp, and file size
