@@ -166,9 +166,20 @@ This script will:
 
 Rollbacks use a rollback-forward mechanism. Clicking "Rollback to this release" in the dashboard copies the selected release with a new timestamp, making it the new active release for that channel.
 
-## Admin Dashboard
+## Demo
 
-<video src="https://github.com/user-attachments/assets/6a799ebf-d056-4d95-8289-39915441bf11" autoplay loop muted playsinline width="100%"></video>
+<table>
+  <tr>
+    <th>Admin Dashboard</th>
+    <th>Mobile Client</th>
+  </tr>
+  <tr>
+    <td width="70%"><video src="https://github.com/user-attachments/assets/6a799ebf-d056-4d95-8289-39915441bf11" autoplay loop muted playsinline width="100%"></video></td>
+    <td width="30%"><video src="https://github.com/user-attachments/assets/eb1c999c-93a2-4584-aa3b-9dcb79e5fb8c" autoplay loop muted playsinline width="100%"></video></td>
+  </tr>
+</table>
+
+## Admin Dashboard
 
 The dashboard shows a list of channels. Each channel has:
 - Release history with commit hash, message, timestamp, and file size
