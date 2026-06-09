@@ -11,7 +11,7 @@ SUPABASE_API_KEY=your-service-role-key
 SUPABASE_BUCKET_NAME=expo-updates
 ```
 - Requires a Supabase project with storage enabled
-- Bucket should be created manually before starting the server
+- Provision the bucket and tables with `scripts/setup-supabase.sh --local` (local Docker stack) or `scripts/setup-supabase.sh --remote <project-ref>` (hosted project)
 
 ### Local Storage
 ```env
@@ -51,7 +51,7 @@ SUPABASE_URL=your-project-url
 SUPABASE_API_KEY=your-service-role-key
 ```
 - Uses Supabase's PostgreSQL database
-- Tables should be created manually before starting the server. Refer to the `containers/database/schema` folder for reference.
+- Provision tables with `scripts/setup-supabase.sh` (see Supabase Storage above). Schema lives in `supabase/migrations/`.
 
 ### PostgreSQL
 ```env

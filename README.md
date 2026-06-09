@@ -98,6 +98,8 @@ The server and admin dashboard will be available at `http://localhost:3000`.
 
 Refer to [Storage & Database Configuration](./docs/supportedStorageAlternatives.md) for more configuration options.
 
+> **Tip:** To develop against Supabase instead of local storage + postgres, run `./scripts/setup-supabase.sh --local` (requires the [Supabase CLI](https://supabase.com/docs/guides/cli) and Docker). It starts a full local Supabase stack with the schema and bucket provisioned, and prints the env vars to copy into `.env.local`.
+
 ## Database Migration from v2
 
 If you're coming from v2 (xavia-ota), run the following SQL migrations against your existing database:
