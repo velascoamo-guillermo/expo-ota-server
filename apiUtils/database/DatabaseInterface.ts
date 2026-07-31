@@ -25,6 +25,17 @@ export interface TrackingMetrics {
   count: number;
 }
 
+export interface CheckIn {
+  id: string;
+  deviceId: string;
+  platform: string;
+  channel: string;
+  runtimeVersion: string;
+  currentUpdateId: string | null;
+  day: string;
+  lastSeen: string;
+}
+
 export interface MAUStat {
   month: string;
   ios: number;
@@ -37,6 +48,7 @@ export interface DatabaseInterface {
   getReleaseByPath(path: string): Promise<Release | null>;
   listReleases(): Promise<Release[]>;
   createTracking(tracking: Omit<Tracking, 'id'>): Promise<Tracking>;
+  upsertCheckIn(checkIn: Omit<CheckIn, 'id'>): Promise<CheckIn>;
   getReleaseTrackingMetrics(releaseId: string): Promise<TrackingMetrics[]>;
   getReleaseTrackingMetricsForAllReleases(): Promise<TrackingMetrics[]>;
   getReleaseTrackingMetricsByChannel(channel: string): Promise<TrackingMetrics[]>;

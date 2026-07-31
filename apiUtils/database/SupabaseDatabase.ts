@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-import { DatabaseInterface, MAUStat, Release, Tracking, TrackingMetrics } from './DatabaseInterface';
+import {
+  CheckIn,
+  DatabaseInterface,
+  MAUStat,
+  Release,
+  Tracking,
+  TrackingMetrics,
+} from './DatabaseInterface';
 import { Tables } from './DatabaseFactory';
 
 export class SupabaseDatabase implements DatabaseInterface {
@@ -150,6 +157,37 @@ export class SupabaseDatabase implements DatabaseInterface {
     if (error) throw new Error(error.message);
     return data;
   }
+  async upsertCheckIn(checkIn: Omit<CheckIn, 'id'>): Promise<CheckIn> {
+    const { data, error } = await this.supabase
+      .from(Tables.CHECK_INS)
+      .upsert(
+        {
+          device_id: checkIn.deviceId,
+          platform: checkIn.platform,
+          channel: checkIn.channel,
+          runtime_version: checkIn.runtimeVersion,
+          current_update_id: checkIn.currentUpdateId ?? null,
+          day: checkIn.day,
+          last_seen: checkIn.lastSeen,
+        },
+        { onConflict: 'device_id,channel,day' }
+      )
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return {
+      id: data.id,
+      deviceId: data.device_id,
+      platform: data.platform,
+      channel: data.channel,
+      runtimeVersion: data.runtime_version,
+      currentUpdateId: data.current_update_id,
+      day: data.day,
+      lastSeen: data.last_seen,
+    };
+  }
+
   async getReleaseTrackingMetrics(releaseId: string): Promise<TrackingMetrics[]> {
     const { count: iosCount, error: iosError } = await this.supabase
       .from(Tables.RELEASES_TRACKING)
