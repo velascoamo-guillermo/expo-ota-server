@@ -68,6 +68,32 @@ export default async function manifestEndpoint(req: NextApiRequest, res: NextApi
   const deviceIdHeader = req.headers['eas-client-id'];
   const deviceId = Array.isArray(deviceIdHeader) ? deviceIdHeader[0] : deviceIdHeader;
 
+  if (deviceId) {
+    const currentUpdateIdHeader = req.headers['expo-current-update-id'];
+    const checkInCurrentUpdateId = Array.isArray(currentUpdateIdHeader)
+      ? currentUpdateIdHeader[0]
+      : currentUpdateIdHeader;
+    try {
+      const now = moment().utc();
+      // Fire-and-forget: tracking must never delay or break the manifest response.
+      DatabaseFactory.getDatabase()
+        .upsertCheckIn({
+          deviceId,
+          platform,
+          channel,
+          runtimeVersion,
+          currentUpdateId: checkInCurrentUpdateId ?? null,
+          day: now.format('YYYY-MM-DD'),
+          lastSeen: now.toISOString(),
+        })
+        .catch((error: unknown) => {
+          logger.error('Failed to upsert check-in', { error, deviceId, channel });
+        });
+    } catch (error) {
+      logger.error('Failed to upsert check-in', { error, deviceId, channel });
+    }
+  }
+
   const release = await CohortHelper.resolveRelease({
     runtimeVersion,
     channel,

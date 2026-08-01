@@ -1,6 +1,13 @@
 import { Pool } from 'pg';
 
-import { DatabaseInterface, MAUStat, Release, Tracking, TrackingMetrics } from './DatabaseInterface';
+import {
+  CheckIn,
+  DatabaseInterface,
+  MAUStat,
+  Release,
+  Tracking,
+  TrackingMetrics,
+} from './DatabaseInterface';
 import { Tables } from './DatabaseFactory';
 
 export class PostgresDatabase implements DatabaseInterface {
@@ -86,6 +93,33 @@ export class PostgresDatabase implements DatabaseInterface {
       RETURNING id, release_id as "releaseId", download_timestamp as "downloadTimestamp", platform, device_id as "deviceId"
     `;
     const values = [tracking.releaseId, tracking.platform, tracking.deviceId ?? null];
+    const { rows } = await this.pool.query(query, values);
+    return rows[0];
+  }
+
+  async upsertCheckIn(checkIn: Omit<CheckIn, 'id'>): Promise<CheckIn> {
+    const query = `
+      INSERT INTO ${Tables.CHECK_INS}
+        (device_id, platform, channel, runtime_version, current_update_id, day, last_seen)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (device_id, channel, day) DO UPDATE SET
+        platform = EXCLUDED.platform,
+        runtime_version = EXCLUDED.runtime_version,
+        current_update_id = EXCLUDED.current_update_id,
+        last_seen = EXCLUDED.last_seen
+      RETURNING id, device_id as "deviceId", platform, channel,
+                runtime_version as "runtimeVersion", current_update_id as "currentUpdateId",
+                day, last_seen as "lastSeen"
+    `;
+    const values = [
+      checkIn.deviceId,
+      checkIn.platform,
+      checkIn.channel,
+      checkIn.runtimeVersion,
+      checkIn.currentUpdateId ?? null,
+      checkIn.day,
+      checkIn.lastSeen,
+    ];
     const { rows } = await this.pool.query(query, values);
     return rows[0];
   }
