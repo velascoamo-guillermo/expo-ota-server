@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 import {
+  AdoptionStat,
   CheckIn,
   DatabaseInterface,
   DAUStat,
@@ -389,6 +390,32 @@ export class SupabaseDatabase implements DatabaseInterface {
     return (data ?? []).map(
       (row: { date: string; ios: number | string; android: number | string }) => ({
         date: row.date,
+        ios: Number(row.ios),
+        android: Number(row.android),
+      })
+    );
+  }
+
+  async getAdoptionStats(channel: string): Promise<AdoptionStat[]> {
+    // Aggregates server-side (supabase/migrations/20260801000004_adoption_rpc.sql) so the
+    // result is O(releases) rows and never hits PostgREST's max-rows response cap.
+    const { data, error } = await this.supabase.rpc('get_adoption_stats', {
+      p_channel: channel,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return (data ?? []).map(
+      (row: {
+        update_id: string | null;
+        release_id: string | null;
+        release_path: string | null;
+        ios: number | string;
+        android: number | string;
+      }) => ({
+        updateId: row.update_id ?? null,
+        releaseId: row.release_id ?? null,
+        releasePath: row.release_path ?? null,
         ios: Number(row.ios),
         android: Number(row.android),
       })

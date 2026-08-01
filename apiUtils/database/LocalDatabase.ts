@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 
 import {
+  AdoptionStat,
   CheckIn,
   DatabaseInterface,
   DAUStat,
@@ -262,5 +263,42 @@ export class PostgresDatabase implements DatabaseInterface {
     `;
     const { rows } = await this.pool.query(query, channel ? [channel] : []);
     return rows.map((r) => ({ date: r.date, ios: Number(r.ios), android: Number(r.android) }));
+  }
+
+  async getAdoptionStats(channel: string): Promise<AdoptionStat[]> {
+    // Latest check-in per device wins (DISTINCT ON + last_seen DESC), so each
+    // active device of the trailing 30 days is counted exactly once. Devices with
+    // a NULL or unmatched current_update_id fall into a single unknown/embedded
+    // bucket (updateId null) via the LEFT JOIN.
+    const query = `
+      WITH latest AS (
+        SELECT DISTINCT ON (ci.device_id) ci.device_id, ci.platform, ci.current_update_id
+        FROM ${Tables.CHECK_INS} ci
+        WHERE ci.channel = $1
+          AND ci.day >= CURRENT_DATE - INTERVAL '29 days'
+        ORDER BY ci.device_id, ci.last_seen DESC, ci.day DESC
+      ),
+      channel_releases AS (
+        SELECT DISTINCT ON (r.update_id) r.id, r.path, r.update_id
+        FROM ${Tables.RELEASES} r
+        WHERE r.channel = $1 AND r.update_id IS NOT NULL
+        ORDER BY r.update_id, r.timestamp DESC
+      )
+      SELECT cr.update_id AS "updateId", cr.id AS "releaseId", cr.path AS "releasePath",
+             COUNT(CASE WHEN l.platform = 'ios' THEN 1 END) AS ios,
+             COUNT(CASE WHEN l.platform = 'android' THEN 1 END) AS android
+      FROM latest l
+      LEFT JOIN channel_releases cr ON cr.update_id = l.current_update_id
+      GROUP BY cr.update_id, cr.id, cr.path
+      ORDER BY (cr.update_id IS NULL) ASC, COUNT(*) DESC
+    `;
+    const { rows } = await this.pool.query(query, [channel]);
+    return rows.map((r) => ({
+      updateId: r.updateId ?? null,
+      releaseId: r.releaseId ?? null,
+      releasePath: r.releasePath ?? null,
+      ios: Number(r.ios),
+      android: Number(r.android),
+    }));
   }
 }
