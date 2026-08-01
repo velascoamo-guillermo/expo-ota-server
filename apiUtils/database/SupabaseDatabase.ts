@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   CheckIn,
   DatabaseInterface,
+  DAUStat,
   MAUStat,
   Release,
   Tracking,
@@ -370,6 +371,24 @@ export class SupabaseDatabase implements DatabaseInterface {
     return (data ?? []).map(
       (row: { month: string; ios: number | string; android: number | string }) => ({
         month: row.month,
+        ios: Number(row.ios),
+        android: Number(row.android),
+      })
+    );
+  }
+
+  async getDAUStats(channel?: string): Promise<DAUStat[]> {
+    // Aggregates server-side (supabase/migrations/20260801000003_dau_rpc.sql) so the
+    // result is O(days) rows and never hits PostgREST's max-rows response cap.
+    const { data, error } = await this.supabase.rpc('get_dau_stats', {
+      p_channel: channel ?? null,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return (data ?? []).map(
+      (row: { date: string; ios: number | string; android: number | string }) => ({
+        date: row.date,
         ios: Number(row.ios),
         android: Number(row.android),
       })

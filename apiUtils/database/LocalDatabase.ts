@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import {
   CheckIn,
   DatabaseInterface,
+  DAUStat,
   MAUStat,
   Release,
   Tracking,
@@ -246,5 +247,20 @@ export class PostgresDatabase implements DatabaseInterface {
     `;
     const { rows } = await this.pool.query(baseQuery, channel ? [channel] : []);
     return rows.map((r) => ({ month: r.month, ios: Number(r.ios), android: Number(r.android) }));
+  }
+
+  async getDAUStats(channel?: string): Promise<DAUStat[]> {
+    const query = `
+      SELECT TO_CHAR(day, 'YYYY-MM-DD') as date,
+             COUNT(DISTINCT CASE WHEN platform = 'ios' THEN device_id END) as ios,
+             COUNT(DISTINCT CASE WHEN platform = 'android' THEN device_id END) as android
+      FROM ${Tables.CHECK_INS}
+      WHERE day >= CURRENT_DATE - INTERVAL '29 days'
+        ${channel ? 'AND channel = $1' : ''}
+      GROUP BY day
+      ORDER BY day ASC
+    `;
+    const { rows } = await this.pool.query(query, channel ? [channel] : []);
+    return rows.map((r) => ({ date: r.date, ios: Number(r.ios), android: Number(r.android) }));
   }
 }

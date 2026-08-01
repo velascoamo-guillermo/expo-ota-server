@@ -42,6 +42,12 @@ export interface MAUStat {
   android: number;
 }
 
+export interface DAUStat {
+  date: string;
+  ios: number;
+  android: number;
+}
+
 export interface DatabaseInterface {
   createRelease(release: Omit<Release, 'id'>): Promise<Release>;
   getRelease(id: string): Promise<Release | null>;
@@ -64,4 +70,5 @@ export interface DatabaseInterface {
   updateCanaryPercentage(releaseId: string, canaryPercentage: number): Promise<Release | null>;
   getDownloadCountsPerRelease(): Promise<Record<string, number>>;
   getMAUStats(channel?: string): Promise<MAUStat[]>;
+  getDAUStats(channel?: string): Promise<DAUStat[]>;
 }
