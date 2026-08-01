@@ -223,15 +223,25 @@ export class PostgresDatabase implements DatabaseInterface {
 
   async getMAUStats(channel?: string): Promise<MAUStat[]> {
     const baseQuery = `
-      SELECT TO_CHAR(DATE_TRUNC('month', rt.download_timestamp), 'YYYY-MM') as month,
-             COUNT(DISTINCT CASE WHEN rt.platform = 'ios' THEN rt.device_id END) as ios,
-             COUNT(DISTINCT CASE WHEN rt.platform = 'android' THEN rt.device_id END) as android
-      FROM ${Tables.RELEASES_TRACKING} rt
-      JOIN ${Tables.RELEASES} r ON r.id = rt.release_id
-      WHERE rt.device_id IS NOT NULL
-        AND rt.download_timestamp >= NOW() - INTERVAL '12 months'
-        ${channel ? 'AND r.channel = $1' : ''}
-      GROUP BY DATE_TRUNC('month', rt.download_timestamp)
+      SELECT month,
+             COUNT(DISTINCT CASE WHEN platform = 'ios' THEN device_id END) as ios,
+             COUNT(DISTINCT CASE WHEN platform = 'android' THEN device_id END) as android
+      FROM (
+        SELECT TO_CHAR(DATE_TRUNC('month', rt.download_timestamp), 'YYYY-MM') as month,
+               rt.platform, rt.device_id
+        FROM ${Tables.RELEASES_TRACKING} rt
+        JOIN ${Tables.RELEASES} r ON r.id = rt.release_id
+        WHERE rt.device_id IS NOT NULL
+          AND rt.download_timestamp >= NOW() - INTERVAL '12 months'
+          ${channel ? 'AND r.channel = $1' : ''}
+        UNION ALL
+        SELECT TO_CHAR(DATE_TRUNC('month', ci.day), 'YYYY-MM') as month,
+               ci.platform, ci.device_id
+        FROM ${Tables.CHECK_INS} ci
+        WHERE ci.day >= NOW() - INTERVAL '12 months'
+          ${channel ? 'AND ci.channel = $1' : ''}
+      ) active_devices
+      GROUP BY month
       ORDER BY month ASC
     `;
     const { rows } = await this.pool.query(baseQuery, channel ? [channel] : []);

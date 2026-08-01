@@ -359,33 +359,20 @@ export class SupabaseDatabase implements DatabaseInterface {
   }
 
   async getMAUStats(channel?: string): Promise<MAUStat[]> {
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    // Aggregates server-side (supabase/migrations/20260801000002_mau_rpc.sql) so the
+    // result is O(months) rows and never hits PostgREST's max-rows response cap.
+    const { data, error } = await this.supabase.rpc('get_mau_stats', {
+      p_channel: channel ?? null,
+    });
 
-    let query = this.supabase
-      .from(Tables.RELEASES_TRACKING)
-      .select(`device_id, platform, download_timestamp, ${Tables.RELEASES}!inner(channel)`)
-      .not('device_id', 'is', null)
-      .gte('download_timestamp', twelveMonthsAgo.toISOString());
-
-    if (channel) {
-      query = query.eq(`${Tables.RELEASES}.channel`, channel);
-    }
-
-    const { data, error } = await query;
     if (error) throw new Error(error.message);
 
-    const byMonth = new Map<string, { ios: Set<string>; android: Set<string> }>();
-    for (const row of data) {
-      const month = row.download_timestamp.slice(0, 7);
-      if (!byMonth.has(month)) byMonth.set(month, { ios: new Set(), android: new Set() });
-      const bucket = byMonth.get(month)!;
-      if (row.platform === 'ios') bucket.ios.add(row.device_id);
-      else if (row.platform === 'android') bucket.android.add(row.device_id);
-    }
-
-    return Array.from(byMonth.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, { ios, android }]) => ({ month, ios: ios.size, android: android.size }));
+    return (data ?? []).map(
+      (row: { month: string; ios: number | string; android: number | string }) => ({
+        month: row.month,
+        ios: Number(row.ios),
+        android: Number(row.android),
+      })
+    );
   }
 }
