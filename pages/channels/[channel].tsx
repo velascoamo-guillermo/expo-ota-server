@@ -34,6 +34,8 @@ import moment from 'moment';
 import {
   AreaChart,
   Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -45,6 +47,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import { showToast } from '../../components/toast';
 import { AllTrackingResponse } from '../api/tracking/all';
 import { MAUResponse } from '../api/tracking/mau';
+import { DAUResponse } from '../api/tracking/dau';
 import { Release } from '../../apiUtils/database/DatabaseInterface';
 
 const CHANNEL_COLORS: Record<string, string> = {
@@ -72,6 +75,7 @@ export default function ChannelPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [stats, setStats] = useState({ totalDownloads: 0, iosDownloads: 0, androidDownloads: 0 });
   const [mauStats, setMauStats] = useState<{ month: string; ios: number; android: number }[]>([]);
+  const [dauStats, setDauStats] = useState<{ date: string; ios: number; android: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
@@ -110,18 +114,21 @@ export default function ChannelPage() {
     if (!channel) return;
     setIsLoading(true);
     try {
-      const [releasesRes, trackingRes, mauRes] = await Promise.all([
+      const [releasesRes, trackingRes, mauRes, dauRes] = await Promise.all([
         fetch(`/api/releases?channel=${channel}`),
         fetch(`/api/tracking/all?channel=${channel}`),
         fetch(`/api/tracking/mau?channel=${channel}`),
+        fetch(`/api/tracking/dau?channel=${channel}`),
       ]);
 
       const releasesData = await releasesRes.json();
       const trackingData = (await trackingRes.json()) as AllTrackingResponse;
       const mauData = (await mauRes.json()) as MAUResponse;
+      const dauData = (await dauRes.json()) as DAUResponse;
 
       setReleases(releasesData.releases ?? []);
       setMauStats(mauData.stats ?? []);
+      setDauStats(dauData.stats ?? []);
 
       const ios = trackingData.trackings.find((m) => m.platform === 'ios')?.count ?? 0;
       const android = trackingData.trackings.find((m) => m.platform === 'android')?.count ?? 0;
@@ -262,6 +269,60 @@ export default function ChannelPage() {
                         activeDot={{ r: 5 }}
                       />
                     </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box>
+            <Heading size="md" mb={4}>
+              Daily Active Users
+            </Heading>
+            <Card variant="outline">
+              <CardBody>
+                {dauStats.length === 0 ? (
+                  <Text color="gray.400" fontSize="sm" textAlign="center" py={10}>
+                    No data yet. DAUs will appear once devices start checking in.
+                  </Text>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={dauStats} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 12 }}
+                        domain={[0, 'auto']}
+                        tickCount={5}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          fontSize: 13,
+                          backgroundColor: tooltipBg,
+                          borderColor: tooltipBorder,
+                          color: tooltipColor,
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="ios"
+                        name="iOS"
+                        stroke="#4F46E5"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="android"
+                        name="Android"
+                        stroke="#10B981"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
                   </ResponsiveContainer>
                 )}
               </CardBody>
