@@ -5,6 +5,7 @@ import {
   CheckIn,
   DatabaseInterface,
   DAUStat,
+  DownloadStat,
   MAUStat,
   Release,
   RuntimeVersionStat,
@@ -439,5 +440,21 @@ export class SupabaseDatabase implements DatabaseInterface {
         android: Number(row.android),
       })
     );
+  }
+
+  async getDownloadsTimeSeries(channel?: string, days: number = 30): Promise<DownloadStat[]> {
+    // Aggregates server-side (supabase/migrations/20260801000006_downloads_series_rpc.sql)
+    // so the result is O(days) rows and never hits PostgREST's max-rows response cap.
+    const { data, error } = await this.supabase.rpc('get_downloads_time_series', {
+      p_channel: channel ?? null,
+      p_days: days,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return (data ?? []).map((row: { date: string; count: number | string }) => ({
+      date: row.date,
+      count: Number(row.count),
+    }));
   }
 }

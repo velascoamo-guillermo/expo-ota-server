@@ -5,6 +5,7 @@ import {
   CheckIn,
   DatabaseInterface,
   DAUStat,
+  DownloadStat,
   MAUStat,
   Release,
   RuntimeVersionStat,
@@ -328,5 +329,24 @@ export class PostgresDatabase implements DatabaseInterface {
       ios: Number(r.ios),
       android: Number(r.android),
     }));
+  }
+
+  async getDownloadsTimeSeries(channel?: string, days: number = 30): Promise<DownloadStat[]> {
+    // Download events per day from legacy releases_tracking over the trailing
+    // `days` window (inclusive of today), optionally filtered by channel through
+    // the releases join. Days without downloads are zero-filled in the API layer.
+    const daysParam = channel ? '$2' : '$1';
+    const query = `
+      SELECT TO_CHAR(DATE_TRUNC('day', rt.download_timestamp), 'YYYY-MM-DD') AS date,
+             COUNT(*) AS count
+      FROM ${Tables.RELEASES_TRACKING} rt
+      JOIN ${Tables.RELEASES} r ON r.id = rt.release_id
+      WHERE rt.download_timestamp >= CAST(CURRENT_DATE - (CAST(${daysParam} AS INTEGER) - 1) AS TIMESTAMP)
+        ${channel ? 'AND r.channel = $1' : ''}
+      GROUP BY DATE_TRUNC('day', rt.download_timestamp)
+      ORDER BY DATE_TRUNC('day', rt.download_timestamp) ASC
+    `;
+    const { rows } = await this.pool.query(query, channel ? [channel, days] : [days]);
+    return rows.map((r) => ({ date: r.date, count: Number(r.count) }));
   }
 }
