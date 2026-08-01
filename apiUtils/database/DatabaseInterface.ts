@@ -48,6 +48,14 @@ export interface DAUStat {
   android: number;
 }
 
+export interface AdoptionStat {
+  updateId: string | null;
+  releaseId: string | null;
+  releasePath: string | null;
+  ios: number;
+  android: number;
+}
+
 export interface DatabaseInterface {
   createRelease(release: Omit<Release, 'id'>): Promise<Release>;
   getRelease(id: string): Promise<Release | null>;
@@ -71,4 +79,5 @@ export interface DatabaseInterface {
   getDownloadCountsPerRelease(): Promise<Record<string, number>>;
   getMAUStats(channel?: string): Promise<MAUStat[]>;
   getDAUStats(channel?: string): Promise<DAUStat[]>;
+  getAdoptionStats(channel: string): Promise<AdoptionStat[]>;
 }
