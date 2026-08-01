@@ -52,8 +52,10 @@ import { MAUResponse } from '../api/tracking/mau';
 import { DAUResponse } from '../api/tracking/dau';
 import { AdoptionResponse } from '../api/tracking/adoption';
 import { RuntimeVersionsResponse } from '../api/tracking/runtime-versions';
+import { DownloadsSeriesResponse } from '../api/tracking/downloads-series';
 import {
   AdoptionStat,
+  DownloadStat,
   Release,
   RuntimeVersionStat,
 } from '../../apiUtils/database/DatabaseInterface';
@@ -92,6 +94,7 @@ export default function ChannelPage() {
   const [dauStats, setDauStats] = useState<{ date: string; ios: number; android: number }[]>([]);
   const [adoptionStats, setAdoptionStats] = useState<AdoptionStat[]>([]);
   const [runtimeVersionStats, setRuntimeVersionStats] = useState<RuntimeVersionStat[]>([]);
+  const [downloadStats, setDownloadStats] = useState<DownloadStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
@@ -130,15 +133,23 @@ export default function ChannelPage() {
     if (!channel) return;
     setIsLoading(true);
     try {
-      const [releasesRes, trackingRes, mauRes, dauRes, adoptionRes, runtimeVersionsRes] =
-        await Promise.all([
-          fetch(`/api/releases?channel=${channel}`),
-          fetch(`/api/tracking/all?channel=${channel}`),
-          fetch(`/api/tracking/mau?channel=${channel}`),
-          fetch(`/api/tracking/dau?channel=${channel}`),
-          fetch(`/api/tracking/adoption?channel=${channel}`),
-          fetch(`/api/tracking/runtime-versions?channel=${channel}`),
-        ]);
+      const [
+        releasesRes,
+        trackingRes,
+        mauRes,
+        dauRes,
+        adoptionRes,
+        runtimeVersionsRes,
+        downloadsRes,
+      ] = await Promise.all([
+        fetch(`/api/releases?channel=${channel}`),
+        fetch(`/api/tracking/all?channel=${channel}`),
+        fetch(`/api/tracking/mau?channel=${channel}`),
+        fetch(`/api/tracking/dau?channel=${channel}`),
+        fetch(`/api/tracking/adoption?channel=${channel}`),
+        fetch(`/api/tracking/runtime-versions?channel=${channel}`),
+        fetch(`/api/tracking/downloads-series?channel=${channel}`),
+      ]);
 
       const releasesData = await releasesRes.json();
       const trackingData = (await trackingRes.json()) as AllTrackingResponse;
@@ -146,12 +157,14 @@ export default function ChannelPage() {
       const dauData = (await dauRes.json()) as DAUResponse;
       const adoptionData = (await adoptionRes.json()) as AdoptionResponse;
       const runtimeVersionsData = (await runtimeVersionsRes.json()) as RuntimeVersionsResponse;
+      const downloadsData = (await downloadsRes.json()) as DownloadsSeriesResponse;
 
       setReleases(releasesData.releases ?? []);
       setMauStats(mauData.stats ?? []);
       setDauStats(dauData.stats ?? []);
       setAdoptionStats(adoptionData.stats ?? []);
       setRuntimeVersionStats(runtimeVersionsData.stats ?? []);
+      setDownloadStats(downloadsData.stats ?? []);
 
       const ios = trackingData.trackings.find((m) => m.platform === 'ios')?.count ?? 0;
       const android = trackingData.trackings.find((m) => m.platform === 'android')?.count ?? 0;
@@ -429,6 +442,45 @@ export default function ChannelPage() {
                       />
                       <Bar dataKey="ios" name="iOS" stackId="runtime" fill="#4F46E5" />
                       <Bar dataKey="android" name="Android" stackId="runtime" fill="#10B981" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardBody>
+            </Card>
+          </Box>
+
+          <Box>
+            <Heading size="md" mb={4}>
+              Downloads (30 days)
+            </Heading>
+            <Card variant="outline">
+              <CardBody>
+                {downloadStats.length === 0 ? (
+                  <Text color="gray.400" fontSize="sm" textAlign="center" py={10}>
+                    No data yet. Downloads will appear once devices fetch updates.
+                  </Text>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart
+                      data={downloadStats}
+                      margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 12 }}
+                        domain={[0, 'auto']}
+                        tickCount={5}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          fontSize: 13,
+                          backgroundColor: tooltipBg,
+                          borderColor: tooltipBorder,
+                          color: tooltipColor,
+                        }}
+                      />
+                      <Bar dataKey="count" name="Downloads" fill="#4F46E5" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}

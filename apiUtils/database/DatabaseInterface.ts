@@ -56,6 +56,11 @@ export interface AdoptionStat {
   android: number;
 }
 
+export interface DownloadStat {
+  date: string;
+  count: number;
+}
+
 export interface RuntimeVersionStat {
   runtimeVersion: string;
   ios: number;
@@ -87,4 +92,5 @@ export interface DatabaseInterface {
   getDAUStats(channel?: string): Promise<DAUStat[]>;
   getAdoptionStats(channel: string): Promise<AdoptionStat[]>;
   getRuntimeVersionDistribution(channel: string): Promise<RuntimeVersionStat[]>;
+  getDownloadsTimeSeries(channel?: string, days?: number): Promise<DownloadStat[]>;
 }
