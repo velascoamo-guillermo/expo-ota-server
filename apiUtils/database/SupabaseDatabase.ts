@@ -7,6 +7,7 @@ import {
   DAUStat,
   MAUStat,
   Release,
+  RuntimeVersionStat,
   Tracking,
   TrackingMetrics,
 } from './DatabaseInterface';
@@ -416,6 +417,24 @@ export class SupabaseDatabase implements DatabaseInterface {
         updateId: row.update_id ?? null,
         releaseId: row.release_id ?? null,
         releasePath: row.release_path ?? null,
+        ios: Number(row.ios),
+        android: Number(row.android),
+      })
+    );
+  }
+
+  async getRuntimeVersionDistribution(channel: string): Promise<RuntimeVersionStat[]> {
+    // Aggregates server-side (supabase/migrations/20260801000005_runtime_dist_rpc.sql) so
+    // the result is O(runtime versions) rows and never hits PostgREST's max-rows cap.
+    const { data, error } = await this.supabase.rpc('get_runtime_version_distribution', {
+      p_channel: channel,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return (data ?? []).map(
+      (row: { runtime_version: string; ios: number | string; android: number | string }) => ({
+        runtimeVersion: row.runtime_version,
         ios: Number(row.ios),
         android: Number(row.android),
       })

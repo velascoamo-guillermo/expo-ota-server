@@ -7,6 +7,7 @@ import {
   DAUStat,
   MAUStat,
   Release,
+  RuntimeVersionStat,
   Tracking,
   TrackingMetrics,
 } from './DatabaseInterface';
@@ -297,6 +298,33 @@ export class PostgresDatabase implements DatabaseInterface {
       updateId: r.updateId ?? null,
       releaseId: r.releaseId ?? null,
       releasePath: r.releasePath ?? null,
+      ios: Number(r.ios),
+      android: Number(r.android),
+    }));
+  }
+
+  async getRuntimeVersionDistribution(channel: string): Promise<RuntimeVersionStat[]> {
+    // Latest check-in per device wins (DISTINCT ON + last_seen DESC), so each
+    // active device of the trailing 30 days is counted exactly once and grouped
+    // by the runtime version it currently runs.
+    const query = `
+      WITH latest AS (
+        SELECT DISTINCT ON (ci.device_id) ci.device_id, ci.platform, ci.runtime_version
+        FROM ${Tables.CHECK_INS} ci
+        WHERE ci.channel = $1
+          AND ci.day >= CURRENT_DATE - INTERVAL '29 days'
+        ORDER BY ci.device_id, ci.last_seen DESC, ci.day DESC
+      )
+      SELECT l.runtime_version AS "runtimeVersion",
+             COUNT(CASE WHEN l.platform = 'ios' THEN 1 END) AS ios,
+             COUNT(CASE WHEN l.platform = 'android' THEN 1 END) AS android
+      FROM latest l
+      GROUP BY l.runtime_version
+      ORDER BY l.runtime_version DESC
+    `;
+    const { rows } = await this.pool.query(query, [channel]);
+    return rows.map((r) => ({
+      runtimeVersion: r.runtimeVersion,
       ios: Number(r.ios),
       android: Number(r.android),
     }));
