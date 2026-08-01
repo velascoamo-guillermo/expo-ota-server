@@ -362,26 +362,42 @@ export class SupabaseDatabase implements DatabaseInterface {
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-    let query = this.supabase
+    let trackingQuery = this.supabase
       .from(Tables.RELEASES_TRACKING)
       .select(`device_id, platform, download_timestamp, ${Tables.RELEASES}!inner(channel)`)
       .not('device_id', 'is', null)
       .gte('download_timestamp', twelveMonthsAgo.toISOString());
 
     if (channel) {
-      query = query.eq(`${Tables.RELEASES}.channel`, channel);
+      trackingQuery = trackingQuery.eq(`${Tables.RELEASES}.channel`, channel);
     }
 
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
+    let checkInQuery = this.supabase
+      .from(Tables.CHECK_INS)
+      .select('device_id, platform, day')
+      .gte('day', twelveMonthsAgo.toISOString().slice(0, 10));
+
+    if (channel) {
+      checkInQuery = checkInQuery.eq('channel', channel);
+    }
+
+    const [trackingResult, checkInResult] = await Promise.all([trackingQuery, checkInQuery]);
+    if (trackingResult.error) throw new Error(trackingResult.error.message);
+    if (checkInResult.error) throw new Error(checkInResult.error.message);
 
     const byMonth = new Map<string, { ios: Set<string>; android: Set<string> }>();
-    for (const row of data) {
-      const month = row.download_timestamp.slice(0, 7);
+    const addDevice = (month: string, platform: string, deviceId: string): void => {
       if (!byMonth.has(month)) byMonth.set(month, { ios: new Set(), android: new Set() });
       const bucket = byMonth.get(month)!;
-      if (row.platform === 'ios') bucket.ios.add(row.device_id);
-      else if (row.platform === 'android') bucket.android.add(row.device_id);
+      if (platform === 'ios') bucket.ios.add(deviceId);
+      else if (platform === 'android') bucket.android.add(deviceId);
+    };
+
+    for (const row of trackingResult.data) {
+      addDevice(row.download_timestamp.slice(0, 7), row.platform, row.device_id);
+    }
+    for (const row of checkInResult.data) {
+      addDevice(row.day.slice(0, 7), row.platform, row.device_id);
     }
 
     return Array.from(byMonth.entries())
